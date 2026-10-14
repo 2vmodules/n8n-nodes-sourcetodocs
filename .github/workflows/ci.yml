@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+# Cancel in-progress runs for the same branch/PR to avoid wasting CI minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            test-engine/package-lock.json
+
+      - name: Install dependencies
+        run: 'npm ci'
+
+      # The engine layer: n8n's own engine at the versions n8n 2.36.9 ships, in its own package.
+      - name: Install engine test dependencies
+        run: 'npm --prefix test-engine ci'
+
+      - name: Run lint
+        run: 'npm run lint'
+
+      # Prettier with the repo's .prettierrc.js, so formatting cannot drift again.
+      - name: Check formatting
+        run: 'npm run format:check'
+
+      - name: Run build
+        run: 'npm run build'
+
+      # The package must hold only dist/nodes, dist/credentials and its metadata (needs the build above).
+      - name: Check the package contents
+        run: 'npm run check:package'
+
+      - name: Run typecheck
+        run: 'npm run typecheck'
+
+      # Both layers: the plain-function suite, then the engine suite (compiles the node first).
+      - name: Run tests
+        run: 'npm test'
+
+  # The release workflow packs from an install of the root package alone, with no install scripts and
+  # none of the engine test tree. This job does the same on every change, so a dependency that starts
+  # needing an install script or a test package to build is found here and not at a release.
+  pack:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install the root package only, without install scripts
+        run: 'npm ci --ignore-scripts'
+
+      - name: Run build
+        run: 'npm run build'
+
+      - name: Check the package contents
+        run: 'npm run check:package'
+
+      - name: Pack
+        run: 'npm pack --ignore-scripts --dry-run'

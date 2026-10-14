@@ -1,0 +1,20 @@
+{
+	"compilerOptions": {
+		"strict": true,
+		"module": "commonjs",
+		"moduleResolution": "node",
+		"target": "es2019",
+		"lib": ["es2019", "es2020", "es2022.error"],
+		"useUnknownInCatchVariables": false,
+		"esModuleInterop": true,
+		"resolveJsonModule": true,
+		"skipLibCheck": true,
+		"noUnusedLocals": true,
+		"baseUrl": ".",
+		"paths": { "n8n-workflow": ["./node_modules/n8n-workflow"] },
+		"rootDir": "..",
+		"outDir": "./node-dist",
+		"sourceMap": true
+	},
+	"include": ["../nodes/**/*", "../credentials/**/*"]
+}

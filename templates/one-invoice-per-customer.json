@@ -1,0 +1,146 @@
+{
+	"name": "One invoice per customer",
+	"nodes": [
+		{
+			"id": "sticky-1",
+			"name": "Setup",
+			"type": "n8n-nodes-base.stickyNote",
+			"typeVersion": 1,
+			"position": [-20, -480],
+			"parameters": {
+				"content": "## Set up in 5 steps\n\n1. In SourceToDocs, configure your Document to **split** on your Customers table, keyed on the customer's **Email** column. Configure the invoice lines Data Set against your Invoice Lines table, scoped by a **customer key column** that table carries (a Customer ID or Email matching one Customers row). Without it the split cannot tell whose lines are whose.\n2. **Get customers** and **Get invoice lines** (Airtable): add your Airtable credential and pick the **Base** and **Table** of each (Customers, Invoice Lines). The two reads run one after the other, so both have run when SourceToDocs reads them. **Get invoice lines** has Execute Once on: it reads the table once, not once per customer.\n3. **SourceToDocs**: add a **SourceToDocs API** credential, then pick your **Project** and **Document**.\n4. Pick the Data Sets: the **first** entry (reads `Get customers`) takes your Customers Data Set, the **second** (reads `Get invoice lines`) takes your Invoice Lines Data Set.\n5. **Email the invoice** (Gmail): add your Gmail credential. The To field is `{{ $json.split_key }}`, the customer's email for that file.\n\n**Has an invoice?** lets only files that succeeded and have a link through to Gmail. Every other item (a file that failed, was cancelled or finished with warnings, or a batch that timed out or produced nothing) goes to **No invoice, not emailed**, so you can open that node's output to see which customers got nothing. A batch in which every file failed is different: the SourceToDocs node stops the workflow with the failure, so nothing reaches either branch.\n\nA missing or mismatched customer key column gives that customer an invoice with no lines and no error. Check it first if a file comes out empty.",
+				"height": 440,
+				"width": 1200
+			}
+		},
+		{
+			"id": "trigger-1",
+			"name": "When clicking \"Execute workflow\"",
+			"type": "n8n-nodes-base.manualTrigger",
+			"typeVersion": 1,
+			"position": [0, 0],
+			"parameters": {}
+		},
+		{
+			"id": "airtable-1",
+			"name": "Get customers",
+			"type": "n8n-nodes-base.airtable",
+			"typeVersion": 2.1,
+			"position": [250, 0],
+			"parameters": {
+				"resource": "record",
+				"operation": "search",
+				"base": { "__rl": true, "mode": "list", "value": "" },
+				"table": { "__rl": true, "mode": "list", "value": "" },
+				"returnAll": true
+			}
+		},
+		{
+			"id": "airtable-2",
+			"name": "Get invoice lines",
+			"type": "n8n-nodes-base.airtable",
+			"typeVersion": 2.1,
+			"position": [500, 0],
+			"executeOnce": true,
+			"parameters": {
+				"resource": "record",
+				"operation": "search",
+				"base": { "__rl": true, "mode": "list", "value": "" },
+				"table": { "__rl": true, "mode": "list", "value": "" },
+				"returnAll": true
+			}
+		},
+		{
+			"id": "s2d-1",
+			"name": "SourceToDocs",
+			"type": "@twovmodules/n8n-nodes-sourcetodocs.sourceToDocs",
+			"typeVersion": 1.1,
+			"position": [750, 0],
+			"parameters": {
+				"resource": "document",
+				"operation": "generate",
+				"projectId": "",
+				"documentId": { "__rl": true, "mode": "list", "value": "" },
+				"rowsFrom": "workflow",
+				"dataSets": {
+					"values": [
+						{
+							"dataSetId": "",
+							"rows": "={{ $('Get customers').all().map(i => i.json) }}"
+						},
+						{
+							"dataSetId": "",
+							"rows": "={{ $('Get invoice lines').all().map(i => i.json) }}"
+						}
+					]
+				},
+				"unknownKeys": "drop",
+				"waitForCompletion": true,
+				"maxWait": 300,
+				"pollEvery": 5,
+				"idempotencyKey": "",
+				"output": "simplified"
+			}
+		},
+		{
+			"id": "if-1",
+			"name": "Has an invoice?",
+			"type": "n8n-nodes-base.if",
+			"typeVersion": 2.2,
+			"position": [1000, 0],
+			"parameters": {
+				"conditions": {
+					"options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2 },
+					"conditions": [
+						{
+							"id": "invoice-ready",
+							"leftValue": "={{ $json.status === 'succeeded' && Boolean($json.file_url) }}",
+							"rightValue": "",
+							"operator": { "type": "boolean", "operation": "true", "singleValue": true }
+						}
+					],
+					"combinator": "and"
+				},
+				"options": {}
+			}
+		},
+		{
+			"id": "noop-1",
+			"name": "No invoice, not emailed",
+			"type": "n8n-nodes-base.noOp",
+			"typeVersion": 1,
+			"position": [1250, 120],
+			"parameters": {}
+		},
+		{
+			"id": "gmail-1",
+			"name": "Email the invoice",
+			"type": "n8n-nodes-base.gmail",
+			"typeVersion": 2.1,
+			"position": [1500, -120],
+			"parameters": {
+				"resource": "message",
+				"operation": "send",
+				"sendTo": "={{ $json.split_key }}",
+				"subject": "Your invoice is ready",
+				"emailType": "text",
+				"message": "=Your invoice is ready: {{ $json.file_url }}"
+			}
+		}
+	],
+	"connections": {
+		"When clicking \"Execute workflow\"": { "main": [[{ "node": "Get customers", "type": "main", "index": 0 }]] },
+		"Get customers": { "main": [[{ "node": "Get invoice lines", "type": "main", "index": 0 }]] },
+		"Get invoice lines": { "main": [[{ "node": "SourceToDocs", "type": "main", "index": 0 }]] },
+		"SourceToDocs": { "main": [[{ "node": "Has an invoice?", "type": "main", "index": 0 }]] },
+		"Has an invoice?": {
+			"main": [
+				[{ "node": "Email the invoice", "type": "main", "index": 0 }],
+				[{ "node": "No invoice, not emailed", "type": "main", "index": 0 }]
+			]
+		}
+	},
+	"settings": {
+		"executionOrder": "v1"
+	}
+}

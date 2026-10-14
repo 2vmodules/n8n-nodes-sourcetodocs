@@ -1,0 +1,74 @@
+{
+	"name": "@twovmodules/n8n-nodes-sourcetodocs",
+	"version": "1.0.0",
+	"description": "n8n community node for SourceToDocs: generate Google Slides, Google Docs and PDF documents from the rows in your workflow, and read your projects, documents and runs through the SourceToDocs Public API",
+	"license": "MIT",
+	"homepage": "https://sourcetodocs.com",
+	"keywords": [
+		"n8n-community-node-package",
+		"n8n",
+		"sourcetodocs",
+		"document-generation",
+		"google-slides",
+		"google-docs",
+		"pdf",
+		"invoice",
+		"report",
+		"presentation",
+		"document-automation",
+		"template",
+		"mail-merge"
+	],
+	"author": {
+		"name": "2V Modules",
+		"url": "https://sourcetodocs.com",
+		"email": "ruslan.asanov@2vmdls.com"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/2vmodules/n8n-nodes-sourcetodocs.git"
+	},
+	"bugs": {
+		"url": "https://github.com/2vmodules/n8n-nodes-sourcetodocs/issues"
+	},
+	"scripts": {
+		"build": "n8n-node build",
+		"build:watch": "tsc --watch",
+		"dev": "n8n-node dev",
+		"lint": "n8n-node lint",
+		"lint:fix": "n8n-node lint --fix",
+		"test": "vitest run && npm run test:engine",
+		"test:unit": "vitest run",
+		"test:engine": "npm --prefix test-engine test",
+		"prepublishOnly": "n8n-node prerelease",
+		"typecheck": "tsc -p tsconfig.test.json && tsc -p test-engine/tsconfig.json",
+		"check:package": "node scripts/check-package-contents.mjs",
+		"format": "prettier --write nodes credentials scripts",
+		"format:check": "prettier --check nodes credentials scripts"
+	},
+	"files": [
+		"dist/nodes",
+		"dist/credentials",
+		"CHANGELOG.md"
+	],
+	"n8n": {
+		"n8nNodesApiVersion": 1,
+		"strict": true,
+		"credentials": [
+			"dist/credentials/SourceToDocsApi.credentials.js"
+		],
+		"nodes": [
+			"dist/nodes/SourceToDocs/SourceToDocs.node.js"
+		]
+	},
+	"devDependencies": {
+		"@n8n/node-cli": "^0.48.5",
+		"eslint": "9.32.0",
+		"prettier": "3.6.2",
+		"typescript": "5.9.2",
+		"vitest": "^5.0.1"
+	},
+	"peerDependencies": {
+		"n8n-workflow": "*"
+	}
+}

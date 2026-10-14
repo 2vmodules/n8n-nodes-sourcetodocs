@@ -1,0 +1,21 @@
+{
+	"name": "s2d-n8n-test-engine",
+	"private": true,
+	"type": "commonjs",
+	"description": "Runs the node inside n8n's own engine (n8n-core + n8n-workflow, the versions n8n 2.36.9 ships) against a fake Public API",
+	"scripts": {
+		"compile": "tsc -p tsconfig.node.json",
+		"test": "npm run compile && vitest run",
+		"coverage": "npm run compile && vitest run --coverage"
+	},
+	"dependencies": {
+		"n8n-core": "2.36.7",
+		"n8n-workflow": "2.36.4"
+	},
+	"devDependencies": {
+		"@vitest/coverage-v8": "5.0.1",
+		"typescript": "5.9.2",
+		"vite": "8.3.0",
+		"vitest": "5.0.1"
+	}
+}

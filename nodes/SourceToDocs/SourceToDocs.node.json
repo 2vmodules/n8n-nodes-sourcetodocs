@@ -1,0 +1,29 @@
+{
+	"node": "@twovmodules/n8n-nodes-sourcetodocs.sourceToDocs",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Productivity", "Sales"],
+	"alias": [
+		"Invoice",
+		"Report",
+		"PDF",
+		"Google Slides",
+		"Google Docs",
+		"Presentation",
+		"Document generation",
+		"Template",
+		"Mail merge"
+	],
+	"resources": {
+		"credentialDocumentation": [
+			{
+				"url": "https://github.com/2vmodules/n8n-nodes-sourcetodocs?tab=readme-ov-file#credentials"
+			}
+		],
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/2vmodules/n8n-nodes-sourcetodocs?tab=readme-ov-file"
+			}
+		]
+	}
+}

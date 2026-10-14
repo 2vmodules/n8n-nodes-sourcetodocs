@@ -1,0 +1,168 @@
+name: Release
+
+# Publishes @twovmodules/n8n-nodes-sourcetodocs to npm when a `vX.Y.Z` tag is pushed, in three jobs:
+#
+#   pack     installs only the root package, with no install scripts, builds, checks the package
+#            contents and packs. It refuses a tag that does not match `version` in package.json,
+#            and a tag whose commit is not on `main`. It uploads the tarball and records its
+#            sha256. Nothing it runs comes from the test dependency tree, so the bytes that are
+#            published cannot be rewritten by an install script of n8n's engine packages or by
+#            the test suite.
+#   test     installs the root package and the engine test dependencies (with their install
+#            scripts), then lints, checks formatting, typechecks and runs both test layers. It
+#            produces no artifact.
+#   publish  needs both. It runs in the `npm-release` GitHub environment (required reviewers) and
+#            publishes the tarball `pack` made. It installs nothing from the repository and runs
+#            no scripts. Only this job has `id-token: write`. The provenance statement comes from
+#            this job's own workflow, repository and commit and carries the tarball's digest; npm
+#            does not run `prepublishOnly` for a tarball, so RELEASE_MODE is not needed. The
+#            tarball's sha256 is checked against the one `pack` recorded before it is published.
+#
+# Authentication is npm trusted publishing (GitHub OIDC): no NPM_TOKEN secret, and the
+# provenance attestation comes with it. One-time setup, in this order:
+#   1. The repository must be public: provenance is not generated for a private one.
+#   2. Create the `npm-release` environment (Settings -> Environments) with required reviewers,
+#      and restrict who may create `v*` tags (Settings -> Rules -> Rulesets).
+#   3. npm only lets a trusted publisher be configured for a package that already exists, so
+#      the first publish needs a short-lived granular token: add it as a secret of the
+#      `npm-release` environment named NPM_TOKEN, add `NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}`
+#      to the `env:` of the Publish step of the `publish` job for that one run, then remove both
+#      again.
+#   4. On npmjs.com, package settings -> Trusted Publishers: this repository, this file
+#      (`release.yml`) and the environment `npm-release`, with "npm publish" allowed (a new
+#      configuration allows only `npm stage publish` by default).
+#
+# Actions are pinned by commit SHA, the tag it stands for in a comment; the npm used to publish is
+# pinned exactly (trusted publishing needs 11.5.1 or later).
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions: {}
+
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      tarball: ${{ steps.pack.outputs.tarball }}
+      sha256: ${{ steps.pack.outputs.sha256 }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          # The whole history, so the commit can be compared with main.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+
+      - name: Refuse a tag that does not match package.json
+        run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
+
+      - name: Refuse a commit that is not on main
+        run: scripts/check-release-commit.sh "$GITHUB_SHA" origin/main
+
+      # Only the root package: the engine test tree is installed by the `test` job, in another runner.
+      - name: Install
+        run: npm ci --ignore-scripts
+
+      - name: Build
+        run: npm run build
+
+      - name: Check the package contents
+        run: npm run check:package
+
+      - name: Pack
+        id: pack
+        run: |
+          mkdir "$RUNNER_TEMP/package"
+          npm pack --ignore-scripts --pack-destination "$RUNNER_TEMP/package" --silent > /dev/null
+          tarball="$(ls "$RUNNER_TEMP/package")"
+          test "$(echo "$tarball" | wc -l)" -eq 1
+          echo "tarball=$tarball" >> "$GITHUB_OUTPUT"
+          echo "sha256=$(sha256sum "$RUNNER_TEMP/package/$tarball" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+
+      - name: Upload the tarball
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: package
+          path: ${{ runner.temp }}/package/${{ steps.pack.outputs.tarball }}
+          if-no-files-found: error
+          retention-days: 7
+
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+
+      - name: Install
+        run: npm ci
+
+      - name: Install engine test dependencies
+        run: npm --prefix test-engine ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+  publish:
+    needs: [pack, test]
+    runs-on: ubuntu-latest
+    environment: npm-release
+    permissions:
+      id-token: write
+    steps:
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          registry-url: 'https://registry.npmjs.org'
+
+      # Trusted publishing needs npm 11.5.1 or later, whatever the image bundles.
+      - name: Install npm
+        run: npm install --global --ignore-scripts npm@11.5.1
+
+      - name: Download the tarball
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: package
+          path: package
+
+      - name: Check the tarball is the one that was packed
+        env:
+          TARBALL: ${{ needs.pack.outputs.tarball }}
+          SHA256: ${{ needs.pack.outputs.sha256 }}
+        run: echo "$SHA256  package/$TARBALL" | sha256sum --check -
+
+      - name: Publish
+        env:
+          TARBALL: ${{ needs.pack.outputs.tarball }}
+        run: npm publish "./package/$TARBALL" --provenance --access public

@@ -1,0 +1,94 @@
+{
+	"name": "Weekly report from CRM deals",
+	"nodes": [
+		{
+			"id": "sticky-1",
+			"name": "Setup",
+			"type": "n8n-nodes-base.stickyNote",
+			"typeVersion": 1,
+			"position": [-20, -440],
+			"parameters": {
+				"content": "## Set up in 4 steps\n\n1. **Get open deals** (Airtable): add your Airtable credential, then pick your **Base** and **Table**.\n2. **SourceToDocs**: add a **SourceToDocs API** credential (workspace API token).\n3. On the same node, pick your **Project**, **Document** and **Data Set** from the dropdowns. The Data Set's column names must match your Airtable columns exactly. Airtable's own `id` and `createdTime` are dropped automatically (Unknown Fields: Drop).\n4. **Post to #sales** (Slack): add your Slack credential and pick your **channel**.\n\nWhen the report did not finish (the wait timed out, or the run was cancelled) the Slack message says so instead of showing an empty link. A run that fails stops the workflow with the failure, because the SourceToDocs node raises it.\n\nSwap Airtable for HubSpot or another CRM if you like: the rows reach SourceToDocs as `$input.all().map(i => i.json)`.",
+				"height": 320,
+				"width": 720
+			}
+		},
+		{
+			"id": "schedule-1",
+			"name": "Every Monday morning",
+			"type": "n8n-nodes-base.scheduleTrigger",
+			"typeVersion": 1.2,
+			"position": [0, 0],
+			"parameters": {
+				"rule": {
+					"interval": [
+						{ "field": "weeks", "weeksInterval": 1, "triggerAtDay": [1], "triggerAtHour": 8 }
+					]
+				}
+			}
+		},
+		{
+			"id": "airtable-1",
+			"name": "Get open deals",
+			"type": "n8n-nodes-base.airtable",
+			"typeVersion": 2.1,
+			"position": [250, 0],
+			"parameters": {
+				"resource": "record",
+				"operation": "search",
+				"base": { "__rl": true, "mode": "list", "value": "" },
+				"table": { "__rl": true, "mode": "list", "value": "" },
+				"returnAll": true
+			}
+		},
+		{
+			"id": "s2d-1",
+			"name": "SourceToDocs",
+			"type": "@twovmodules/n8n-nodes-sourcetodocs.sourceToDocs",
+			"typeVersion": 1.1,
+			"position": [500, 0],
+			"parameters": {
+				"resource": "document",
+				"operation": "generate",
+				"projectId": "",
+				"documentId": { "__rl": true, "mode": "list", "value": "" },
+				"rowsFrom": "workflow",
+				"dataSets": {
+					"values": [
+						{ "dataSetId": "", "rows": "={{ $input.all().map(i => i.json) }}" }
+					]
+				},
+				"unknownKeys": "drop",
+				"distributionIds": [],
+				"waitForCompletion": true,
+				"maxWait": 300,
+				"pollEvery": 5,
+				"idempotencyKey": "",
+				"output": "simplified"
+			}
+		},
+		{
+			"id": "slack-1",
+			"name": "Post to #sales",
+			"type": "n8n-nodes-base.slack",
+			"typeVersion": 2.2,
+			"position": [750, 0],
+			"parameters": {
+				"resource": "message",
+				"operation": "post",
+				"select": "channel",
+				"channelId": { "__rl": true, "mode": "list", "value": "" },
+				"messageType": "text",
+				"text": "={{ ($json.status === 'succeeded' || $json.status === 'partial_success') && $json.file_url ? \"This week's deals report is ready: \" + $json.file_url : \"This week's deals report is not ready: \" + ($json.timed_out ? 'it was still being generated when the wait ended' : 'its status is ' + $json.status) + '. Check the run in SourceToDocs.' }}"
+			}
+		}
+	],
+	"connections": {
+		"Every Monday morning": { "main": [[{ "node": "Get open deals", "type": "main", "index": 0 }]] },
+		"Get open deals": { "main": [[{ "node": "SourceToDocs", "type": "main", "index": 0 }]] },
+		"SourceToDocs": { "main": [[{ "node": "Post to #sales", "type": "main", "index": 0 }]] }
+	},
+	"settings": {
+		"executionOrder": "v1"
+	}
+}

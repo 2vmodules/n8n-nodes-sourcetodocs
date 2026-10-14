@@ -1,0 +1,117 @@
+{
+	"name": "Generate on form submission",
+	"nodes": [
+		{
+			"id": "sticky-1",
+			"name": "Setup",
+			"type": "n8n-nodes-base.stickyNote",
+			"typeVersion": 1,
+			"position": [-20, -420],
+			"parameters": {
+				"content": "## Set up in 2 steps\n\n1. **SourceToDocs**: add a **SourceToDocs API** credential, then pick your **Project**, **Document** and **Data Set**.\n2. The mapper is on **Map Automatically**: every form field is sent as it is, so name the form's fields (**Client name**, **Amount** to start with) exactly like the Data Set's columns. Rename the fields or the columns until they match. The Form Trigger's own `submittedAt` and `formMode` are dropped automatically.\n\nTo fill the columns yourself, switch the mapper to **Map Each Column Manually** and drag a value into each.\n\nThe flow ends with an n8n Form page that shows the link to the finished document, or a plain message when it is not ready (the wait timed out, or the run was cancelled). A run that fails stops the workflow with n8n's own error page, because the SourceToDocs node raises it.\n\nThe form is **public**: anyone with its address can submit it, every submission spends a run of your plan, and the link shown opens the generated document. For internal use, turn on Basic Auth on the Form Trigger.",
+				"height": 300,
+				"width": 720
+			}
+		},
+		{
+			"id": "form-1",
+			"name": "On form submission",
+			"type": "n8n-nodes-base.formTrigger",
+			"typeVersion": 2.6,
+			"position": [0, 0],
+			"parameters": {
+				"formTitle": "Generate a report",
+				"formDescription": "Fill this in to generate a document from your own data.",
+				"formFields": {
+					"values": [
+						{
+							"fieldLabel": "Client name",
+							"fieldType": "text",
+							"requiredField": true
+						},
+						{
+							"fieldLabel": "Amount",
+							"fieldType": "number",
+							"requiredField": true
+						}
+					]
+				}
+			}
+		},
+		{
+			"id": "s2d-1",
+			"name": "SourceToDocs",
+			"type": "@twovmodules/n8n-nodes-sourcetodocs.sourceToDocs",
+			"typeVersion": 1.1,
+			"position": [250, 0],
+			"parameters": {
+				"resource": "document",
+				"operation": "generate",
+				"projectId": "",
+				"documentId": {
+					"__rl": true,
+					"mode": "list",
+					"value": ""
+				},
+				"rowsFrom": "mapped",
+				"mappedDataSetId": "",
+				"columns": {
+					"mappingMode": "autoMapInputData",
+					"value": null,
+					"matchingColumns": [],
+					"schema": [],
+					"attemptToConvertTypes": false,
+					"convertFieldsToString": false
+				},
+				"additionalDataSets": {},
+				"unknownKeys": "drop",
+				"distributionIds": [],
+				"waitForCompletion": true,
+				"maxWait": 300,
+				"pollEvery": 5,
+				"idempotencyKey": "",
+				"output": "simplified"
+			}
+		},
+		{
+			"id": "form-end-1",
+			"name": "Show the link",
+			"type": "n8n-nodes-base.form",
+			"typeVersion": 2.5,
+			"position": [500, 0],
+			"parameters": {
+				"operation": "completion",
+				"respondWith": "text",
+				"completionTitle": "={{ ($json.status === 'succeeded' || $json.status === 'partial_success') && $json.file_url ? 'Your document is ready' : 'Your document is not ready yet' }}",
+				"completionMessage": "={{ ($json.status === 'succeeded' || $json.status === 'partial_success') && $json.file_url ? $json.file_url : ($json.timed_out ? 'Your document is still being generated. It was not ready when the wait ended; look for it in SourceToDocs shortly.' : 'Your document could not be generated (status: ' + $json.status + '). Please try again.') }}"
+			}
+		}
+	],
+	"connections": {
+		"On form submission": {
+			"main": [
+				[
+					{
+						"node": "SourceToDocs",
+						"type": "main",
+						"index": 0
+					}
+				]
+			]
+		},
+		"SourceToDocs": {
+			"main": [
+				[
+					{
+						"node": "Show the link",
+						"type": "main",
+						"index": 0
+					}
+				]
+			]
+		}
+	},
+	"settings": {
+		"executionOrder": "v1"
+	}
+}
