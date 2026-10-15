@@ -162,7 +162,10 @@ jobs:
           SHA256: ${{ needs.pack.outputs.sha256 }}
         run: echo "$SHA256  package/$TARBALL" | sha256sum --check -
 
+      # NODE_AUTH_TOKEN is for the first publish only (setup step 3): remove it, and the
+      # environment's NPM_TOKEN secret, once the trusted publisher is configured.
       - name: Publish
         env:
           TARBALL: ${{ needs.pack.outputs.tarball }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish "./package/$TARBALL" --provenance --access public
