@@ -8,7 +8,7 @@
 			"typeVersion": 1,
 			"position": [-20, -440],
 			"parameters": {
-				"content": "## Set up in 4 steps\n\n1. **Get open deals** (Airtable): add your Airtable credential, then pick your **Base** and **Table**.\n2. **SourceToDocs**: add a **SourceToDocs API** credential (workspace API token).\n3. On the same node, pick your **Project**, **Document** and **Data Set** from the dropdowns. The Data Set's column names must match your Airtable columns exactly. Airtable's own `id` and `createdTime` are dropped automatically (Unknown Fields: Drop).\n4. **Post to #sales** (Slack): add your Slack credential and pick your **channel**.\n\nWhen the report did not finish (the wait timed out, or the run was cancelled) the Slack message says so instead of showing an empty link. A run that fails stops the workflow with the failure, because the SourceToDocs node raises it.\n\nSwap Airtable for HubSpot or another CRM if you like: the rows reach SourceToDocs as `$input.all().map(i => i.json)`.",
+				"content": "## Set up in 4 steps\n\n1. **Get open deals** (Airtable): add your Airtable credential, then pick your **Base** and **Table**.\n2. **SourceToDocs**: add a **SourceToDocs API** credential (workspace API token).\n3. On the same node, pick your **Document** and **Data Set** from the dropdowns. The Data Set's column names must match your Airtable columns exactly. Airtable's own `id` and `createdTime` are dropped automatically (Unknown Fields: Drop).\n4. **Post to #sales** (Slack): add your Slack credential and pick your **channel**.\n\nWhen the report did not finish (the wait timed out, or the run was cancelled) the Slack message says so instead of showing an empty link. A run that fails stops the workflow with the failure, because the SourceToDocs node raises it.\n\nSwap Airtable for HubSpot or another CRM if you like: the rows reach SourceToDocs as `$input.all().map(i => i.json)`.",
 				"height": 320,
 				"width": 720
 			}
@@ -50,7 +50,6 @@
 			"parameters": {
 				"resource": "document",
 				"operation": "generate",
-				"projectId": "",
 				"documentId": { "__rl": true, "mode": "list", "value": "" },
 				"rowsFrom": "workflow",
 				"dataSets": {

@@ -95,7 +95,7 @@ describe('Base URL must be https', () => {
 
 	it.each([
 		['load options', 'loadOptions', 'getProjects', { resource: 'document' }],
-		['list search', 'listSearch', 'searchDocuments', { projectId: 'a0000000-0000-4000-8000-000000000001' }],
+		['list search', 'listSearch', 'searchDocuments', { resource: 'document' }],
 	] as const)('covers %s', async (_title, kind, name, parameters) => {
 		const api = await startApi(() => ok({ projects: [], documents: [] }));
 

@@ -16,6 +16,10 @@ All notable changes to `@twovmodules/n8n-nodes-sourcetodocs` are recorded here. 
   drops the old top-level values without an error. A node with Wait For Completion off waits again, a
   node with its own Idempotency Key switches to the automatic key, and a Deliver To subset becomes
   every enabled distribution. Set them again under Options.
+- **The Document picker lists the whole workspace.** Document → Get and Generate no longer have a
+  **Project** filter: From List shows every document as `Project / Document` and searches both
+  names. A workflow that had a Project set simply loses it, with no other effect. Document → Get
+  Many still takes a Project.
 
 ## [1.0.0] - 2026-10-13
 

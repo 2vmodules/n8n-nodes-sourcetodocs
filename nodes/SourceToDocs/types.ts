@@ -15,6 +15,7 @@ export type PublicDocumentType = 'google_slides' | 'google_docs';
 export interface PublicDocumentSummaryData {
 	id: string;
 	project_id: string;
+	project_name: string;
 	name: string;
 	type: PublicDocumentType;
 	split_enabled: boolean;

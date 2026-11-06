@@ -8,7 +8,7 @@
 			"typeVersion": 1,
 			"position": [-20, -420],
 			"parameters": {
-				"content": "## Set up in 2 steps\n\n1. **SourceToDocs**: add a **SourceToDocs API** credential, then pick your **Project**, **Document** and **Data Set**.\n2. The mapper is on **Map Automatically**: every form field is sent as it is, so name the form's fields (**Client name**, **Amount** to start with) exactly like the Data Set's columns. Rename the fields or the columns until they match. The Form Trigger's own `submittedAt` and `formMode` are dropped automatically.\n\nTo fill the columns yourself, switch the mapper to **Map Each Column Manually** and drag a value into each.\n\nThe flow ends with an n8n Form page that shows the link to the finished document, or a plain message when it is not ready (the wait timed out, or the run was cancelled). A run that fails stops the workflow with n8n's own error page, because the SourceToDocs node raises it.\n\nThe form is **public**: anyone with its address can submit it, every submission spends a run of your plan, and the link shown opens the generated document. For internal use, turn on Basic Auth on the Form Trigger.",
+				"content": "## Set up in 2 steps\n\n1. **SourceToDocs**: add a **SourceToDocs API** credential, then pick your **Document** and **Data Set**.\n2. The mapper is on **Map Automatically**: every form field is sent as it is, so name the form's fields (**Client name**, **Amount** to start with) exactly like the Data Set's columns. Rename the fields or the columns until they match. The Form Trigger's own `submittedAt` and `formMode` are dropped automatically.\n\nTo fill the columns yourself, switch the mapper to **Map Each Column Manually** and drag a value into each.\n\nThe flow ends with an n8n Form page that shows the link to the finished document, or a plain message when it is not ready (the wait timed out, or the run was cancelled). A run that fails stops the workflow with n8n's own error page, because the SourceToDocs node raises it.\n\nThe form is **public**: anyone with its address can submit it, every submission spends a run of your plan, and the link shown opens the generated document. For internal use, turn on Basic Auth on the Form Trigger.",
 				"height": 300,
 				"width": 720
 			}
@@ -47,7 +47,6 @@
 			"parameters": {
 				"resource": "document",
 				"operation": "generate",
-				"projectId": "",
 				"documentId": {
 					"__rl": true,
 					"mode": "list",

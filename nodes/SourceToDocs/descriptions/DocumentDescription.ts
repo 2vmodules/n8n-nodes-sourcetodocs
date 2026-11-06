@@ -85,31 +85,11 @@ export const documentFields: INodeProperties[] = [
 			'The project whose documents to list. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 	},
 	{
-		displayName: 'Project Name or ID',
-		name: 'projectId',
-		type: 'options',
-		typeOptions: {
-			loadOptionsMethod: 'getProjects',
-		},
-		default: '',
-		displayOptions: {
-			show: {
-				resource: ['document'],
-				operation: ['get', 'generate'],
-			},
-		},
-		description:
-			'A project, to filter the Document picker below by. Only used to build that list: the Document below is what is read or generated, and which project it belongs to is never sent. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
-	},
-	{
 		displayName: 'Document',
 		name: 'documentId',
 		type: 'resourceLocator',
 		default: { mode: 'list', value: '' },
 		required: true,
-		typeOptions: {
-			loadOptionsDependsOn: ['projectId'],
-		},
 		displayOptions: {
 			show: {
 				resource: ['document'],
@@ -117,7 +97,7 @@ export const documentFields: INodeProperties[] = [
 			},
 		},
 		description:
-			"The document to generate or read. A document is a template that renders rows into Google Slides, Google Docs or a PDF: Generate starts a run of it and returns the produced file's link, Get reads its data sets (with their column names) and its distributions. Only the document itself matters here — the project above is only how the From List mode is filtered",
+			"The document to generate or read. A document is a template that renders rows into Google Slides, Google Docs or a PDF: Generate starts a run of it and returns the produced file's link, Get reads its data sets (with their column names) and its distributions.",
 		modes: [
 			{
 				displayName: 'From List',

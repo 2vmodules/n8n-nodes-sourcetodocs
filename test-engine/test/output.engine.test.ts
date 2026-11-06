@@ -84,12 +84,12 @@ describe('both versions keep their other parameters, and the optional fields liv
 		[
 			'Generate',
 			{ resource: 'document', operation: 'generate', documentId: doc, rowsFrom: 'connected' },
-			{ resource: 'document', operation: 'generate', projectId: '', documentId: doc, rowsFrom: 'connected', options: {}, simplify: true },
+			{ resource: 'document', operation: 'generate', documentId: doc, rowsFrom: 'connected', options: {}, simplify: true },
 		],
 		[
 			'Generate, with Wait For Completion set',
 			{ resource: 'document', operation: 'generate', documentId: doc, rowsFrom: 'connected', options: { waitForCompletion: true } },
-			{ resource: 'document', operation: 'generate', projectId: '', documentId: doc, rowsFrom: 'connected', options: { waitForCompletion: true }, simplify: true },
+			{ resource: 'document', operation: 'generate', documentId: doc, rowsFrom: 'connected', options: { waitForCompletion: true }, simplify: true },
 		],
 		['Run → Get', { resource: 'run', operation: 'get', runId: 'r' }, { resource: 'run', operation: 'get', runId: 'r', options: {}, simplify: true }],
 		['Project → Get Many', { resource: 'project', operation: 'getMany' }, { resource: 'project', operation: 'getMany' }],
@@ -97,7 +97,7 @@ describe('both versions keep their other parameters, and the optional fields liv
 		[
 			'Document → Get',
 			{ resource: 'document', operation: 'get', documentId: doc },
-			{ resource: 'document', operation: 'get', projectId: '', documentId: doc },
+			{ resource: 'document', operation: 'get', documentId: doc },
 		],
 	])('version 1, %s: the stored parameters hold an empty Options and no output, limit or returnAll', (_name, stored, expected) => {
 		expect(storedParameters(1, stored as INodeParameters)).toEqual(expected);
@@ -108,7 +108,7 @@ describe('both versions keep their other parameters, and the optional fields liv
 			resource: 'run', operation: 'get', runId: 'r', options: {}, output: 'simplified',
 		});
 		expect(storedParameters(1.1, { resource: 'document', operation: 'generate', documentId: doc, rowsFrom: 'connected' })).toEqual({
-			resource: 'document', operation: 'generate', projectId: '', documentId: doc, rowsFrom: 'connected', options: {}, output: 'simplified',
+			resource: 'document', operation: 'generate', documentId: doc, rowsFrom: 'connected', options: {}, output: 'simplified',
 		});
 		expect(storedParameters(1.1, { resource: 'project', operation: 'getMany' })).toEqual({ resource: 'project', operation: 'getMany', returnAll: true });
 		expect(storedParameters(1.1, { resource: 'document', operation: 'getMany', projectId: 'p', returnAll: false })).toEqual({
@@ -125,6 +125,14 @@ describe('both versions keep their other parameters, and the optional fields liv
 		for (const name of optionNames) expect(stored).not.toHaveProperty(name);
 		expect(stored.options).toEqual({});
 		expect(storedParameters(version, { resource: 'run', operation: 'get', runId: 'r', summaryOnly: true, maxWait: 9 })).not.toHaveProperty('summaryOnly');
+	});
+
+	it.each([1, 1.1])('version %s: Get and Generate have no Project parameter, and a saved one is dropped; Get Many keeps its own', (version) => {
+		for (const operation of ['get', 'generate']) {
+			const stored = storedParameters(version, { resource: 'document', operation, documentId: doc, rowsFrom: 'connected', projectId: 'p' });
+			expect(stored).not.toHaveProperty('projectId');
+		}
+		expect(storedParameters(version, { resource: 'document', operation: 'getMany', projectId: 'p' })).toHaveProperty('projectId', 'p');
 	});
 
 	describe('inside the Options collection', () => {

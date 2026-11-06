@@ -2,7 +2,7 @@
 
 Three workflows for the [n8n templates catalogue](https://n8n.io/workflows/), each importable
 as is. After import: add a **SourceToDocs API** credential to the SourceToDocs node, then pick
-your own Project, Document and Data Set from its dropdowns (and your own credentials on the
+your own Document and Data Set from its dropdowns (and your own credentials on the
 other service nodes) — nothing else needs changing.
 
 Each JSON file below is one submission. The **Title**, **Description** and **Category** text is
@@ -37,7 +37,7 @@ rows the same way; the other two stay JSON.
 > `{{ $input.all().map(i => i.json) }}` — then post the finished file's link to Slack.
 >
 > **Before you run it:** add your Airtable, SourceToDocs and Slack credentials, pick your Base
-> and Table on the Airtable node, and pick your Project, Document and Data Set on the
+> and Table on the Airtable node, and pick your Document and Data Set on the
 > SourceToDocs node (its description lists the Data Set's column names — your Airtable
 > columns need to match them exactly; Airtable's own `id` and `createdTime` fields are dropped
 > automatically). Pick your Slack channel. That's it.
@@ -117,7 +117,7 @@ with the failure and neither branch runs.
 > generates a document from them, waits for the run to finish (the node polls it), and shows the
 > person who submitted it a link to the result.
 >
-> **Before you run it:** add your SourceToDocs credential, then pick your Project, Document and
+> **Before you run it:** add your SourceToDocs credential, then pick your Document and
 > Data Set. The SourceToDocs node uses **Map Columns** in **Map Automatically**: every form field
 > is sent as it is, so name the form's fields (**Client name**, **Amount** to start with) exactly
 > like the Data Set's columns — rename the fields or the columns until they match. The Form

@@ -96,8 +96,9 @@ template end to end: a CRM's rows become a document, with no mapping step.
    becomes one row.
 2. Add the **SourceToDocs** node, credential attached, **Resource: Document**,
    **Operation: Generate**.
-3. Pick **Project**, then **Document** — From List once a Project is picked, or paste the
-   document's URL from the app (`.../documents/show/<id>`), or its ID directly.
+3. Pick the **Document** — From List (every document of the workspace, shown as
+   `Project / Document`, searchable by either name), or paste the document's URL from the app
+   (`.../documents/show/<id>`), or its ID directly.
 4. Set **Rows Come From** to **This Workflow — JSON**. The **Data Sets** collection appears, already
    holding one entry with **Rows** pre-filled:
 
@@ -146,7 +147,6 @@ The node's parameters, in order, for reference. Options is last and holds the op
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
-| Project | options | — | Only filters the Document picker; never sent |
 | Document | resource locator | — | From List / ID / URL |
 | Rows Come From | options | Connected Data Sources | `connected`, `workflow` (This Workflow — JSON) or `mapped` (This Workflow — Map Columns) |
 | Data Sets | collection | one empty entry | shown for `workflow` only |

@@ -208,39 +208,59 @@ describe('getDistributions', () => {
 
 describe('searchDocuments', () => {
 	const documents = [
-		{ id: 'd-1', project_id: 'a0000000-0000-4000-8000-000000000001', name: 'Weekly Report' },
-		{ id: 'd-2', project_id: 'a0000000-0000-4000-8000-000000000001', name: 'Invoice' },
+		{ id: 'd-1', project_id: 'p-1', project_name: 'Reports', name: 'Weekly Report' },
+		{ id: 'd-2', project_id: 'p-2', project_name: 'Billing', name: 'Invoice' },
 	];
-	const projectRouter: Router = (request) =>
-		request.path === `${API_PATH}/projects/a0000000-0000-4000-8000-000000000001/documents` ? ok({ documents }) : failure(404, 'not_found', 'Resource not found.');
-	const search = (api: FakeApi, projectId: string, filter?: string) =>
+	const workspaceRouter: Router = (request) =>
+		request.path === `${API_PATH}/documents` ? ok({ documents }) : failure(404, 'not_found', 'Resource not found.');
+	const search = (api: FakeApi, filter?: string) =>
 		callMethod<{ results: Array<{ name: string; value: string; url: string }> }>({
 			kind: 'listSearch',
 			name: 'searchDocuments',
 			baseUrl: api.baseUrl,
 			filter,
-			parameters: { ...generating, projectId },
+			parameters: generating,
 		});
 
-	it('returns nothing, and sends nothing, until a project is picked', async () => {
-		const api = await startApi(projectRouter);
+	it('lists the workspace with no other parameter set, each document named Project / Document, and builds its app URL from the Base URL origin', async () => {
+		const api = await startApi(workspaceRouter);
 
-		expect(await search(api, '')).toEqual({ results: [] });
-		expect(api.requests).toHaveLength(0);
+		expect(await search(api, '')).toEqual({
+			results: [
+				{ name: 'Reports / Weekly Report', value: 'd-1', url: `${api.origin}/documents/show/d-1` },
+				{ name: 'Billing / Invoice', value: 'd-2', url: `${api.origin}/documents/show/d-2` },
+			],
+		});
 	});
 
-	it("filters the project's documents by name, case-insensitively, and builds each one's app URL from the Base URL origin", async () => {
-		const api = await startApi(projectRouter);
+	it('makes one request, to the workspace list, and none to a project\'s own documents', async () => {
+		const api = await startApi(workspaceRouter);
 
-		expect(await search(api, 'a0000000-0000-4000-8000-000000000001', 'WEEK')).toEqual({
-			results: [{ name: 'Weekly Report', value: 'd-1', url: `${api.origin}/documents/show/d-1` }],
-		});
+		await search(api, '');
+
+		expect(api.requests.map((request) => `${request.method} ${request.path}`)).toEqual([`GET ${API_PATH}/documents`]);
+	});
+
+	it('filters by document name, case-insensitively', async () => {
+		const api = await startApi(workspaceRouter);
+
+		const { results } = await search(api, 'WEEK');
+
+		expect(results.map((r) => r.value)).toEqual(['d-1']);
+	});
+
+	it('filters by project name, case-insensitively', async () => {
+		const api = await startApi(workspaceRouter);
+
+		const { results } = await search(api, 'billing');
+
+		expect(results.map((r) => r.value)).toEqual(['d-2']);
 	});
 
 	it('lists everything for an empty filter', async () => {
-		const api = await startApi(projectRouter);
+		const api = await startApi(workspaceRouter);
 
-		const { results } = await search(api, 'a0000000-0000-4000-8000-000000000001', '');
+		const { results } = await search(api, '');
 
 		expect(results.map((r) => r.value)).toEqual(['d-1', 'd-2']);
 	});
@@ -406,9 +426,8 @@ const pickers: Array<{ name: string; call: (api: FakeApi) => Promise<unknown>; s
 	},
 	{
 		name: 'Document (searchDocuments)',
-		scopedToDeletable: true,
-		call: (api) =>
-			callMethod({ kind: 'listSearch', name: 'searchDocuments', baseUrl: api.baseUrl, parameters: { ...generating, projectId: 'a0000000-0000-4000-8000-000000000001' } }),
+		scopedToDeletable: false,
+		call: (api) => callMethod({ kind: 'listSearch', name: 'searchDocuments', baseUrl: api.baseUrl, parameters: generating }),
 	},
 	{
 		name: 'Data Set (getDataSets)',

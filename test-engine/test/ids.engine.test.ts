@@ -280,15 +280,6 @@ describe('the pickers refuse a hostile id before any request', () => {
 		expect(api.requests).toHaveLength(0);
 	});
 
-	it('listSearch.searchDocuments refuses a Project that is not an ID', async () => {
-		const api = await startApi();
-
-		await expect(
-			callMethod({ kind: 'listSearch', name: 'searchDocuments', baseUrl: api.baseUrl, parameters: { ...generating, projectId: 'abc?x=1' } }),
-		).rejects.toThrow("'Project' is not a valid ID: \"abc?x=1\"");
-		expect(api.requests).toHaveLength(0);
-	});
-
 	it('a picked UUID still loads (Document, Project)', async () => {
 		const api = await startApi();
 
