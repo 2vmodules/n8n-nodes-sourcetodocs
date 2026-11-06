@@ -345,13 +345,14 @@ describe('searchDocuments', () => {
 			expect((await within(api, SALES_B)).results.map((r) => r.name)).toEqual(['Sales · 9c1e / Q4 Report']);
 		});
 
-		it('matches the whole label, as shown: Project / Document, the project alone, the document alone, the suffix', async () => {
+		it('matches the whole label, as shown or without the suffix: Project / Document, the project alone, the document alone', async () => {
 			const api = await startApi(router);
 
 			expect((await within(api, '', 'billing / invoice')).results.map((r) => r.value)).toEqual(['d-3']);
 			expect((await within(api, '', 'SALES')).results.map((r) => r.value)).toEqual(['d-1', 'd-2']);
 			expect((await within(api, '', 'q4')).results.map((r) => r.value)).toEqual(['d-2']);
 			expect((await within(api, '', 'sales · 3f2a / q3')).results.map((r) => r.value)).toEqual(['d-1']);
+			expect((await within(api, '', 'Sales / Q4')).results.map((r) => r.value)).toEqual(['d-2']);
 			expect((await within(api, '', 'nothing')).results).toEqual([]);
 		});
 

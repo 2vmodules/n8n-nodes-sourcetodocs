@@ -19,19 +19,20 @@ All notable changes to `@twovmodules/n8n-nodes-sourcetodocs` are recorded here. 
   subset becomes every enabled distribution, an Unknown Fields of Refuse goes back to Drop, and
   Additional Data Sets are lost. Set them again under Options.
 - **The Document picker lists the whole workspace.** From List shows every document as
-  `Project / Document` and searches both names, so Document → Get and Generate no longer have a
-  **Project** filter. A workflow that had a Project set loses it, with no other effect. Document →
-  Get Many still takes a Project. This needs a SourceToDocs backend that lists the workspace's
-  documents. To narrow the list to one project, add **Project** under **Options** on Document → Get
-  or Generate; the choice only filters the list and is never sent. Projects that share a name show
-  the first four characters of their ID after the name, such as `Sales · 3f2a`.
+  `Project / Document`, and typing matches that whole name. The Project filter of Document → Get and
+  Generate is now optional and sits under **Options**: leave it out to list every document, or pick a
+  project to narrow the list. It only filters the list and is never sent. A workflow that had a
+  top-level Project set loses it, with no other effect. Document → Get Many still requires its
+  Project. This needs a SourceToDocs backend that lists the workspace's documents. Projects that
+  share a name show the first four characters of their ID after the name, such as `Sales · 3f2a`.
 - **Simplified output keeps ten fields.** At node version 1.1, Simplified on Generate and Run → Get
   returns `run_id`, `status`, `file_url`, `file_name`, `split_key`, `file_count`, `deliveries`,
   `warnings`, `error_code` and `error_message` (a batch's files also keep `batch_run_id`). `kind`,
   `page_count`, `progress`, `folder_url`, `generation_stats`, `document_id` and the timestamps are
   in Raw and Selected Fields. Node version 1's output is unchanged. A node saved with 1.0.0 at
-  version 1.1 no longer gets `kind`, `progress`, `folder_url`, `page_count` or `generation_stats`
-  under Simplified, and an expression that reads one of them gets nothing: set Output to Raw.
+  version 1.1 no longer gets `kind`, `progress`, `folder_url`, `page_count`, `generation_stats`,
+  `document_id`, `processing_started_at` or `finished_at` under Simplified, and an expression that
+  reads one of them gets nothing: set Output to Raw.
 - **Document → Get has an Output option** (node version 1.1): Simplified, the default, Raw and
   Selected Fields. Simplified turns a Data Set's columns into a list of names and leaves out their
   `choices`. A Document → Get saved with 1.0.0 at version 1.1 now returns Simplified instead of the

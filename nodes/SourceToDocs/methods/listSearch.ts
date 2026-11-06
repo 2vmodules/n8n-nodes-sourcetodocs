@@ -9,8 +9,9 @@ import { projectLabels } from './projectLabels';
  *
  * Each result is named `<project> / <document>`; a project whose name another project shares
  * shows the start of its id after the name. Options → Project, when set, keeps one project's
- * documents. `filter` matches the whole label, case-insensitively, client-side, since the
- * Public API's list endpoint takes no search parameter.
+ * documents. `filter` matches the whole label as shown, or as `<project> / <document>` without the
+ * id start, case-insensitively, client-side, since the Public API's list endpoint takes no search
+ * parameter.
  */
 export async function searchDocuments(
 	this: ILoadOptionsFunctions,
@@ -35,10 +36,17 @@ export async function searchDocuments(
 		results: documents
 			.filter((document) => projectId === '' || document.project_id === projectId)
 			.map((document) => ({
-				name: `${labels.get(document.project_id) ?? document.project_name} / ${document.name}`,
-				value: document.id,
-				url: `${origin}/documents/show/${document.id}`,
+				plain: `${document.project_name} / ${document.name}`,
+				result: {
+					name: `${labels.get(document.project_id) ?? document.project_name} / ${document.name}`,
+					value: document.id,
+					url: `${origin}/documents/show/${document.id}`,
+				},
 			}))
-			.filter((result) => result.name.toLowerCase().includes(needle)),
+			.filter(
+				({ plain, result }) =>
+					result.name.toLowerCase().includes(needle) || plain.toLowerCase().includes(needle),
+			)
+			.map(({ result }) => result),
 	};
 }

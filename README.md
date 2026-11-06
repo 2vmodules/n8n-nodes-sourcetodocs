@@ -176,7 +176,7 @@ The node's parameters, in order, for reference. Options is last and holds the op
 
 Run → Get takes a Run ID and the same Output (or Simplify, at version 1); its own **Options** collection holds **Summary Only** and, from node version 1.1, **Max Wait**.
 
-Document → Get has an **Options** collection too, holding only **Project**, which narrows the Document list as it does on Generate. Projects that share a name show the first four characters of their ID after the name (`Sales · 3f2a`), in the Project list and in the document names (`Sales · 3f2a / Q3 Report`). Typing in the Document list matches the whole name as shown, so `Sales`, `Q3` and `Sales / Q3` all find it.
+Document → Get has an **Options** collection too, holding only **Project**, which narrows the Document list as it does on Generate. Projects that share a name show the first four characters of their ID after the name (`Sales · 3f2a`), in the Project list and in the document names (`Sales · 3f2a / Q3 Report`). Typing in the Document list matches the whole name, with or without the ID part, so `Sales`, `Q3` and `Sales / Q3` all find it.
 
 Document → Get has an **Output** of its own from node version 1.1, with **Fields** offering the document's own keys (`id`, `project_id`, `project_name`, `name`, `type`, `split_enabled`, `generate_pdf`, `created_at`, `updated_at`, `split`, `data_sets`, `distributions`; default `id`, `name`, `data_sets`, and `id` always stays). Version 1 returns the raw document.
 
