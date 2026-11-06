@@ -8,30 +8,34 @@ All notable changes to `@twovmodules/n8n-nodes-sourcetodocs` are recorded here. 
 
 ### Changed
 
-- **Optional fields are now under Options.** On Document → Generate, **Deliver To**, **Wait For
-  Completion**, **Max Wait**, **Poll Every** and **Idempotency Key** moved into an **Options**
-  collection; on Run → Get, **Summary Only** and **Max Wait** did too. They behave as before, and an
-  empty Options collection is the same as the old defaults. This applies to node versions 1 and 1.1.
-  A workflow saved with 1.0.0 loses the values it held for these fields when it is opened or run: n8n
-  drops the old top-level values without an error. A node with Wait For Completion off waits again, a
-  node with its own Idempotency Key switches to the automatic key, and a Deliver To subset becomes
-  every enabled distribution. Set them again under Options.
-- **The Document picker lists the whole workspace.** Document → Get and Generate no longer have a
-  **Project** filter: From List shows every document as `Project / Document` and searches both
-  names. A workflow that had a Project set simply loses it, with no other effect. Document → Get
-  Many still takes a Project.
-- **Unknown Fields and Additional Data Sets are under Options too.** **Unknown Fields** (JSON and Map
-  Columns rows) and **Additional Data Sets** (Map Columns) moved into Generate's **Options**, with
-  their old behaviour and the same defaults. A workflow saved with 1.0.0 that set **Unknown Fields** to
-  Refuse goes back to Drop, and its Additional Data Sets are lost; set them again under Options.
-- **Simplified output keeps ten fields, and Document → Get has an Output option.** At node version
-  1.1, Simplified on Generate and Run → Get returns `run_id`, `status`, `file_url`, `file_name`,
-  `split_key`, `file_count`, `deliveries`, `warnings`, `error_code` and `error_message` (a batch's
-  files also keep `batch_run_id`); `kind`, `page_count`, `progress`, `folder_url`,
-  `generation_stats`, `document_id` and the timestamps are in Raw and Selected Fields. Document →
-  Get (version 1.1) now offers Simplified (the default), Raw and Selected Fields: Simplified turns
-  a Data Set's columns into a list of names and leaves out their `choices`, so use Raw for those.
-  Version 1 is unchanged.
+- **Optional fields are now under Options.** On Document → Generate, **Additional Data Sets**,
+  **Deliver to**, **Idempotency Key**, **Max Wait**, **Poll Every**, **Unknown Fields** and
+  **Wait for Completion** moved into an **Options** collection; on Run → Get, **Max Wait** and
+  **Summary Only** did too. They behave as before, an empty Options collection is the same as the
+  old defaults, and it applies to node versions 1 and 1.1 (Run → Get's Max Wait exists from 1.1).
+  A workflow saved with 1.0.0 loses the values it held for these fields when it is opened or run,
+  because n8n drops the old top-level values without an error. A node with Wait for Completion off
+  waits again, a node with its own Idempotency Key switches to the automatic key, a Deliver to
+  subset becomes every enabled distribution, an Unknown Fields of Refuse goes back to Drop, and
+  Additional Data Sets are lost. Set them again under Options.
+- **The Document picker lists the whole workspace.** From List shows every document as
+  `Project / Document` and searches both names, so Document → Get and Generate no longer have a
+  **Project** filter. A workflow that had a Project set loses it, with no other effect. Document →
+  Get Many still takes a Project. This needs a SourceToDocs backend that lists the workspace's
+  documents.
+- **Simplified output keeps ten fields.** At node version 1.1, Simplified on Generate and Run → Get
+  returns `run_id`, `status`, `file_url`, `file_name`, `split_key`, `file_count`, `deliveries`,
+  `warnings`, `error_code` and `error_message` (a batch's files also keep `batch_run_id`). `kind`,
+  `page_count`, `progress`, `folder_url`, `generation_stats`, `document_id` and the timestamps are
+  in Raw and Selected Fields. Node version 1's output is unchanged.
+- **Document → Get has an Output option** (node version 1.1): Simplified, the default, Raw and
+  Selected Fields. Simplified turns a Data Set's columns into a list of names and leaves out their
+  `choices`, so use Raw for those.
+- **A hint warns that Generate starts one run for all input items.** It shows before execution when
+  Rows Come From is Connected Data Sources and more than one item arrives, and points to Loop Over
+  Items for one document per item.
+- **Tooltips are shorter,** the long explanations moved to the README, and **Wait for Completion**
+  and **Deliver to** follow n8n's title case.
 
 ## [1.0.0] - 2026-10-13
 

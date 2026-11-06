@@ -170,6 +170,17 @@ export class SourceToDocs implements INodeType {
 			name: 'SourceToDocs',
 		},
 		usableAsTool: true,
+		hints: [
+			{
+				message:
+					'This node starts one run for all input items, not one per item. To make one document per item, put a Loop Over Items node before it.',
+				type: 'info',
+				location: 'outputPane',
+				whenToDisplay: 'beforeExecution',
+				displayCondition:
+					'={{ $parameter["resource"] === "document" && $parameter["operation"] === "generate" && $parameter["rowsFrom"] === "connected" && $input.all().length > 1 }}',
+			},
+		],
 		inputs: [NodeConnectionTypes.Main],
 		outputs: [NodeConnectionTypes.Main],
 		credentials: [

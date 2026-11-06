@@ -58,8 +58,25 @@ describe.concurrent('Generate, with Options left empty (the version a new node g
 	});
 });
 
+describe('Generate, with Options left empty, a run that takes two polls', () => {
+	it('ends succeeded, not timed out, after about 10 s: the default Max Wait is well above one poll', async () => {
+		let polls = 0;
+		const api = await startApi(
+			startRouter('pending', () => ok({ run: runPayload({ status: ++polls < 2 ? 'processing' : 'succeeded' }) })),
+		);
+
+		const result = await through(api, generateNode(1.1, {}));
+
+		expect(result.errorOf('SourceToDocs')).toBeUndefined();
+		expect(api.gets()).toHaveLength(2);
+		expect(result.json('SourceToDocs')[0]).toMatchObject({ status: 'succeeded' });
+		expect(result.json('SourceToDocs')[0]).not.toHaveProperty('timed_out');
+		expect(result.ms).toBeGreaterThanOrEqual(9900);
+	}, 30_000);
+});
+
 describe.concurrent.each([1, 1.1])('Generate, each option set, node version %s', (version) => {
-	it('Deliver To is sent as distribution_ids', async () => {
+	it('Deliver to is sent as distribution_ids', async () => {
 		const api = await startApi(startRouter('succeeded'));
 
 		await through(api, generateNode(version, { waitForCompletion: false, distributionIds: [DIST] }));
@@ -67,7 +84,7 @@ describe.concurrent.each([1, 1.1])('Generate, each option set, node version %s',
 		expect(bodyOf(api.posts()[0])).toEqual({ distribution_ids: [DIST] });
 	});
 
-	it('Wait For Completion off returns the started run without polling', async () => {
+	it('Wait for Completion off returns the started run without polling', async () => {
 		const api = await startApi(startRouter('pending'));
 
 		const result = await through(api, generateNode(version, { waitForCompletion: false }));

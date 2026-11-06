@@ -88,7 +88,7 @@ const refusals: Array<{ title: string; reply: FakeReply; code?: string; category
 		message: 'No active plan resolved for workspace.',
 	},
 	{
-		title: 'every Deliver To id ignored (422 no_enabled_distributions)',
+		title: 'every Deliver to id ignored (422 no_enabled_distributions)',
 		reply: failure(422, 'business_rule', 'The document has no enabled distribution to deliver to.', {
 			code: ['no_enabled_distributions'],
 		}),
@@ -148,7 +148,7 @@ describe('Generate when the API refuses the start', () => {
 		});
 	});
 
-	it('passes Deliver To straight through and says nothing when the API ignores an id (201)', async () => {
+	it('passes Deliver to straight through and says nothing when the API ignores an id (201)', async () => {
 		const api = await startApi(
 			defaultRouter({ distributions: [{ id: 'rd-1', distribution_type: 'google_drive', status: 'pending' }] }),
 		);

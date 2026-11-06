@@ -187,7 +187,7 @@ describe('the credential', () => {
 describe('parameters the node checks itself', () => {
 	it('an ID names its parameter in single quotes', () => {
 		expect(expectWording(() => assertId(node, 'Run ID', 'x')).message).toMatch(/^'Run ID' is not a valid ID/);
-		expect(expectWording(() => assertIds(node, 'Deliver To', 'x')).message).toMatch(/^'Deliver To' must be a list/);
+		expect(expectWording(() => assertIds(node, 'Deliver to', 'x')).message).toMatch(/^'Deliver to' must be a list/);
 	});
 
 	it.each([

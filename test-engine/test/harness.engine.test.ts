@@ -25,7 +25,8 @@ describe('s2d', () => {
 	});
 
 	it('puts none of the optional fields at the top level', () => {
-		expect(Object.keys(s2dConnected({ options: { pollEvery: 2 } }).parameters)).not.toEqual(expect.arrayContaining(['waitForCompletion']));
+		const keys = Object.keys(s2dConnected({ options: { pollEvery: 2 } }).parameters);
+		for (const name of OPTION_NAMES) expect(keys).not.toContain(name);
 	});
 });
 

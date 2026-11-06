@@ -132,5 +132,5 @@ with the failure and neither branch runs.
 > own address on import.
 
 **What it builds:** Form Trigger → SourceToDocs (Generate, Rows Come From: This Workflow — Map
-Columns in Map Automatically, Wait For Completion on) → n8n Form (Form Ending page showing
+Columns in Map Automatically, Options → Wait for Completion on) → n8n Form (Form Ending page showing
 `file_url`, or a message when there is none).

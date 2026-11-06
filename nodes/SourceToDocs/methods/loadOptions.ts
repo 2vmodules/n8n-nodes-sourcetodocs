@@ -34,7 +34,7 @@ export async function getDataSets(this: ILoadOptionsFunctions): Promise<INodePro
 }
 
 /**
- * The picked Document's enabled Distributions, for Deliver To.
+ * The picked Document's enabled Distributions, for Deliver to.
  *
  * A split-configured Document delivers through its own Distributions, not the node's: this
  * returns one disabled, explanatory option instead of a pickable list.

@@ -110,7 +110,7 @@ describe('hostile ids are refused before any request', () => {
 		});
 	}
 
-	it('refuses each Deliver To id that is not an ID, naming Deliver To, and sends nothing', async () => {
+	it('refuses each Deliver to id that is not an ID, naming Deliver to, and sends nothing', async () => {
 		const api = await startApi();
 		const node = s2d({ rowsFrom: 'connected', options: { distributionIds: '={{ $json.ids }}' } });
 
@@ -118,18 +118,18 @@ describe('hostile ids are refused before any request', () => {
 
 		const error = result.errorOf('SourceToDocs') as unknown as NodeErrorCopy;
 		expect(error?.name).toBe('NodeOperationError');
-		expect(error.message).toContain("'Deliver To' is not a valid ID: \"../../projects#\"");
+		expect(error.message).toContain("'Deliver to' is not a valid ID: \"../../projects#\"");
 		expect(api.requests).toHaveLength(0);
 	});
 
-	it('refuses a Deliver To that is not a list', async () => {
+	it('refuses a Deliver to that is not a list', async () => {
 		const api = await startApi();
 		const node = s2d({ rowsFrom: 'connected', options: { distributionIds: '={{ $json.ids }}' } });
 
 		const result = await runWith(api, node, [{ json: { ids: DIST_UUID } }]);
 
 		const error = result.errorOf('SourceToDocs') as unknown as NodeErrorCopy;
-		expect(error?.message).toContain("'Deliver To' must be a list of IDs");
+		expect(error?.message).toContain("'Deliver to' must be a list of IDs");
 		expect(api.requests).toHaveLength(0);
 	});
 
@@ -247,7 +247,7 @@ describe('valid ids still work in every mode', () => {
 		expect(projects.requests.map((r) => r.path)).toEqual([`${API_PATH}/projects/${PROJECT_UUID}/documents`]);
 	});
 
-	it('Generate: Data Set and Deliver To ids that are UUIDs are sent in the body, in all three Rows modes', async () => {
+	it('Generate: Data Set and Deliver to ids that are UUIDs are sent in the body, in all three Rows modes', async () => {
 		const api = await startApi();
 		const distributionIds = [DIST_UUID];
 

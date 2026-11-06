@@ -89,7 +89,7 @@ describe('both versions keep their other parameters, and the optional fields liv
 			{ resource: 'document', operation: 'generate', documentId: doc, rowsFrom: 'connected', options: {}, simplify: true },
 		],
 		[
-			'Generate, with Wait For Completion set',
+			'Generate, with Wait for Completion set',
 			{ resource: 'document', operation: 'generate', documentId: doc, rowsFrom: 'connected', options: { waitForCompletion: true } },
 			{ resource: 'document', operation: 'generate', documentId: doc, rowsFrom: 'connected', options: { waitForCompletion: true }, simplify: true },
 		],
@@ -165,7 +165,7 @@ describe('both versions keep their other parameters, and the optional fields liv
 			}
 		});
 
-		it.each([1, 1.1])('version %s Generate: Max Wait and Poll Every show when Wait For Completion was never added or is on, and hide when it is off', (version) => {
+		it.each([1, 1.1])('version %s Generate: Max Wait and Poll Every show when Wait for Completion was never added or is on, and hide when it is off', (version) => {
 			for (const item of ['maxWait', 'pollEvery']) {
 				expect(shown(version, 'document', 'generate', { documentId: doc, rowsFrom: 'connected' }, item)).toBe(true);
 				expect(shown(version, 'document', 'generate', { documentId: doc, rowsFrom: 'connected', options: { waitForCompletion: true } }, item)).toBe(true);

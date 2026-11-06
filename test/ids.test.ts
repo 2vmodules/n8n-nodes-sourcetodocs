@@ -60,15 +60,15 @@ describe('idForPath', () => {
 
 describe('assertIds', () => {
 	it('returns the list with every id validated', () => {
-		expect(assertIds(node, 'Deliver To', [UUID, ` ${UUID} `])).toEqual([UUID, UUID]);
-		expect(assertIds(node, 'Deliver To', [])).toEqual([]);
+		expect(assertIds(node, 'Deliver to', [UUID, ` ${UUID} `])).toEqual([UUID, UUID]);
+		expect(assertIds(node, 'Deliver to', [])).toEqual([]);
 	});
 
 	it('refuses the whole list for one bad id', () => {
-		expect(() => assertIds(node, 'Deliver To', [UUID, 'x/y'])).toThrow("'Deliver To' is not a valid ID: \"x/y\"");
+		expect(() => assertIds(node, 'Deliver to', [UUID, 'x/y'])).toThrow("'Deliver to' is not a valid ID: \"x/y\"");
 	});
 
 	it('refuses a value that is not a list', () => {
-		expect(() => assertIds(node, 'Deliver To', UUID)).toThrow(/^'Deliver To' must be a list of IDs/);
+		expect(() => assertIds(node, 'Deliver to', UUID)).toThrow(/^'Deliver to' must be a list of IDs/);
 	});
 });

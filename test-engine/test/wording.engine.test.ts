@@ -89,7 +89,7 @@ describe('the words of each way Generate stops', () => {
 		['an entry with no Data Set', s2dJson([{ dataSetId: '', rows: '[]' }]), "'Data Set'"],
 		['Map Columns with nothing mapped', s2dMapped({}), "'Map Columns'"],
 		['Map Columns with the mapped Data Set listed again', s2dMapped({ 'Client name': 'x' }, { options: { additionalDataSets: { values: [{ dataSetId: DS_ID, rows: '[]' }] } } }), "'Additional Data Sets'"],
-		['a Deliver To that is not a list', s2dConnected({ options: { distributionIds: '={{ "x" }}' } }), "'Deliver To'"],
+		['a Deliver to that is not a list', s2dConnected({ options: { distributionIds: '={{ "x" }}' } }), "'Deliver to'"],
 		['Selected Fields with nothing selected', s2dConnected({ output: 'selected', outputFields: [] }, {}), "'Fields'"],
 	])('%s names its parameter and sends nothing', async (_title, node, quoted) => {
 		const api = await startApi(defaultRouter());

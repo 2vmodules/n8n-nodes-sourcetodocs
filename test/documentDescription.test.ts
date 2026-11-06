@@ -1,8 +1,14 @@
+/* eslint-disable @n8n/community-nodes/no-restricted-imports, @n8n/community-nodes/no-restricted-globals -- a test reads the repo's README; it is not shipped */
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
 import { documentFields, documentOperations } from '../nodes/SourceToDocs/descriptions/DocumentDescription';
 import { projectFields } from '../nodes/SourceToDocs/descriptions/ProjectDescription';
 import { runFields, runOperations } from '../nodes/SourceToDocs/descriptions/RunDescription';
+
+const readme = readFileSync(join(__dirname, '..', 'README.md'), 'utf8').replace(/\s+/g, ' ');
 
 type Item = { name: string; displayName: string; type: string; default?: unknown; typeOptions?: Record<string, unknown>; displayOptions?: { show?: Record<string, unknown>; hide?: Record<string, unknown> }; description?: string; hint?: string };
 
@@ -23,7 +29,7 @@ describe('the Options collections', () => {
 			[runFields, getOptions(), 'get'],
 		] as const) {
 			expect(collection).toBeDefined();
-			expect(collection).toMatchObject({ displayName: 'Options', name: 'options', type: 'collection', placeholder: 'Add Option', default: {} });
+			expect(collection).toMatchObject({ displayName: 'Options', name: 'options', type: 'collection', placeholder: 'Add option', default: {} });
 			expect(fields.filter((f) => f.name === 'options')).toHaveLength(1);
 			const ofOperation = fields.filter((f) => JSON.stringify(f.displayOptions?.show ?? {}).includes(`"operation":["${last}"`));
 			expect(ofOperation.length).toBeGreaterThan(3);
@@ -33,7 +39,7 @@ describe('the Options collections', () => {
 
 	it('hold the optional fields, in n8n\'s alphabetical order by display name, with their defaults and type options', () => {
 		const generate = generateOptions()?.options ?? [];
-		expect(generate.map((item) => item.displayName)).toEqual(['Additional Data Sets', 'Deliver To Names or IDs', 'Idempotency Key', 'Max Wait (Seconds)', 'Poll Every (Seconds)', 'Unknown Fields', 'Wait For Completion']);
+		expect(generate.map((item) => item.displayName)).toEqual(['Additional Data Sets', 'Deliver to Names or IDs', 'Idempotency Key', 'Max Wait (Seconds)', 'Poll Every (Seconds)', 'Unknown Fields', 'Wait for Completion']);
 		expect(generate.map((item) => item.name)).toEqual(['additionalDataSets', 'distributionIds', 'idempotencyKey', 'maxWait', 'pollEvery', 'unknownKeys', 'waitForCompletion']);
 		expect(generate.map((item) => item.default)).toEqual([{}, [], '', 300, 5, 'drop', true]);
 		expect(generateItem('distributionIds')?.typeOptions).toEqual({ loadOptionsMethod: 'getDistributions', loadOptionsDependsOn: ['documentId.value'] });
@@ -52,7 +58,7 @@ describe('the Options collections', () => {
 		}
 	});
 
-	it('Max Wait and Poll Every hide when Wait For Completion is off, not show only when it is on', () => {
+	it('Max Wait and Poll Every hide when Wait for Completion is off, not show only when it is on', () => {
 		for (const name of ['maxWait', 'pollEvery']) {
 			expect(generateItem(name)?.displayOptions, name).toEqual({ hide: { waitForCompletion: [false] } });
 		}
@@ -80,7 +86,7 @@ describe('the Options collections', () => {
 	});
 });
 
-describe('documentFields — Deliver To description', () => {
+describe('documentFields — Deliver to description', () => {
 	it('tells the truth about an empty selection: all enabled distributions, not nowhere', () => {
 		const field = generateItem('distributionIds');
 
@@ -89,11 +95,13 @@ describe('documentFields — Deliver To description', () => {
 		expect(field?.description).not.toContain('deliver nowhere');
 	});
 
-	it('keeps inline_data/distribution_ids jargon out of the description, in the hint instead', () => {
+	it('keeps API jargon out of the tooltip: the request field it becomes is explained in the README', () => {
 		const field = generateItem('distributionIds');
 
 		expect(field?.description).not.toContain('distribution_ids');
-		expect(field?.hint).toContain('distribution_ids');
+		expect(field?.hint).toBeUndefined();
+		expect(readme).toContain('`distribution_ids`');
+		expect(readme).toMatch(/split Document ignores it and delivers through its own distributions/);
 	});
 });
 
@@ -178,38 +186,42 @@ describe('copy per n8n\'s UX guidelines', () => {
 		};
 		collect(all);
 
-		expect(hints.length).toBeGreaterThan(4);
+		expect(hints.length).toBeGreaterThan(2);
 		for (const hint of hints) {
 			expect(hint[0], hint).toBe(hint[0].toUpperCase());
 		}
 	});
 
-	it('Max Wait and Poll Every say their cap and how they relate', () => {
+	it('the README says the real bounds of Max Wait and Poll Every, which the tooltips no longer repeat', () => {
+		expect(readme).toContain('**Max Wait** defaults to 300 s, is never under **Poll Every**');
+		expect(readme).toContain('never over 3600 s');
+		expect(readme).toContain('**Poll Every** defaults to 5 s, is never under 2 s');
 		for (const name of ['maxWait', 'pollEvery']) {
-			const description = generateItem(name)?.description ?? '';
-
-			expect(description, name).toContain('3600 s');
-			expect(description, name).toContain("'Max Wait (Seconds)' is at least 'Poll Every (Seconds)'");
+			expect(generateItem(name)?.description, name).not.toContain('3600');
 		}
 	});
 
-	it("Run → Get's Max Wait says its bounds, which are Generate's", () => {
+	it("Run → Get's Max Wait keeps Generate's name, default and bounds; the README says the bounds", () => {
 		const generate = generateItem('maxWait');
 		const get = getItem('maxWait');
 
 		expect(get?.displayName).toBe(generate?.displayName);
 		expect(get?.default).toBe(generate?.default);
 		expect(get?.typeOptions).toEqual(generate?.typeOptions);
-				expect(get?.description).toContain('3600 s');
-		expect(get?.description).toContain("at least 5 s, the 'Poll Every (Seconds)' default");
+		expect(get?.description).not.toMatch(/version/i);
+		expect(readme).toContain("the same bounds as Generate's, never under 5 s");
+		expect(readme).toContain('at most `3600`');
 	});
 
-	it('the Idempotency Key description matches the code: any run that ended failed starts a new one', () => {
+	it('the Idempotency Key tooltip is short, and the README holds the rules it no longer repeats', () => {
 		const description = generateItem('idempotencyKey')?.description ?? '';
 
-		expect(description).toContain("A run that ended with status 'failed' is not resumed, whether or not it made its document");
-		expect(description).not.toContain('ended without producing a document');
 		expect(description).not.toMatch(/^Optional/);
+		expect(description).not.toContain(':after:');
+		expect(readme).toContain("A run that ended `failed` is not adopted, whether or not it made its document");
+		expect(readme).toContain('`:after:`');
+		expect(readme).toContain('6 hours');
+		expect(readme).toContain('`idempotent_replay: true`');
 	});
 
 	it('descriptions put the names of parameters, fields and values in single quotes', () => {
@@ -226,7 +238,7 @@ describe('copy per n8n\'s UX guidelines', () => {
 			/(?<!')\bUnknown Fields\b(?!')/,
 			/(?<!')\bMax Wait\b(?! \(Seconds\))(?!')/,
 			/(?<!')\bPoll Every\b(?! \(Seconds\))(?!')/,
-			/(?<!')\bWait For Completion\b(?!')/,
+			/(?<!')\bWait for Completion\b(?!')/,
 			/(?<!')\bSummary Only\b(?!')/,
 			/(?<!')\bRetry On Fail\b(?!')/,
 			/(?<!')\b(?:idempotent_replay|timed_out)\b(?!')/,

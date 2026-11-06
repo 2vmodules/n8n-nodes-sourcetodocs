@@ -38,19 +38,21 @@ describe('CHANGELOG', () => {
 	const changelog = read('CHANGELOG.md');
 
 	const sections = changelog.split(/^(?=## \[)/m).slice(1);
-	const section = (version: string) => sections.find((text) => text.startsWith(`## [${version}]`)) ?? '';
 	const headingsOf = (text: string) => text.match(/^### .+$/gm) ?? [];
 
 	it('has one dated heading per release, the newest being the package version, and no [Unreleased]', () => {
 		for (const text of sections) expect(text.split('\n')[0]).toMatch(/^## \[\d+\.\d+\.\d+\] - \d{4}-\d{2}-\d{2}$/);
-		expect(changelog.match(/^## \[/gm)).toHaveLength(2);
+		const versions = sections.map((text) => text.match(/^## \[(\d+\.\d+\.\d+)\]/)?.[1] ?? '');
+		const rank = (version: string) => version.split('.').reduce((total, part) => total * 1000 + Number(part), 0);
+		expect(new Set(versions).size).toBe(versions.length);
+		expect([...versions].sort((a, b) => rank(b) - rank(a))).toEqual(versions);
 		expect(sections[0]).toMatch(new RegExp(`^## \\[${manifest.version.replace(/\./g, '\\.')}\\] - `));
 		expect(changelog).not.toContain('[Unreleased]');
 	});
 
-	it('keeps the first release to its Added list, and 2.0.0 to one Changed list', () => {
-		expect(headingsOf(section('1.0.0'))).toEqual(['### Added']);
-		expect(headingsOf(section('2.0.0'))).toEqual(['### Changed']);
+	it('keeps the first release to its Added list, every later one to a single list, and has no Fixed', () => {
+		expect(headingsOf(sections[sections.length - 1])).toEqual(['### Added']);
+		for (const text of sections.slice(0, -1)) expect(headingsOf(text)).toHaveLength(1);
 		expect(changelog).not.toMatch(/^### Fixed/m);
 	});
 });

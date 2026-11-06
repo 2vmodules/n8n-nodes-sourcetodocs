@@ -16,7 +16,7 @@ const dataSetEntryFields: INodeProperties[] = [
 		},
 		default: '',
 		description:
-			'The data set these rows belong to — pick it to see its column names. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+			'The data set these rows belong to. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 	},
 	{
 		displayName: 'Rows',
@@ -24,7 +24,7 @@ const dataSetEntryFields: INodeProperties[] = [
 		type: 'json',
 		default: '',
 		description:
-			"A JSON array of objects, one per row, with each object's fields matching the data set's column names exactly — not its alias, not an ID. Pick the Data Set above to see its columns, or call Document → Get first. A column a row omits renders null. A field that is not one of the data set's columns is handled by 'Unknown Fields' below.",
+			"A JSON array of objects, one per row, with each object's keys matching the data set's column names exactly. A key that is not a column is handled by 'Unknown Fields' under Options.",
 		hint: "All input items: {{ $input.all().map(i => i.json) }} · An array field of the items: {{ $input.all().flatMap(i => i.json.Lines) }} · Another node's items: {{ $('Get lines').all().map(i => i.json) }}",
 	},
 ];
@@ -45,14 +45,14 @@ export const documentOperations: INodeProperties[] = [
 				name: 'Generate',
 				value: 'generate',
 				description:
-					"Start a run that renders the document into a file — a Google Slides deck, a Google Docs document, or a PDF — from its connected data sources or from rows supplied in this workflow, and return the produced file's link. Use Document → Get first to learn the document's data sets and their column names if rows are coming from this workflow.",
+					"Render the document into a Google Slides deck, a Google Docs document or a PDF, and return the file's link. One run starts for all input items, not one per item.",
 				action: 'Generate document',
 			},
 			{
 				name: 'Get',
 				value: 'get',
 				description:
-					"Get one document: its data sets (each with its column names — the exact keys a row for Document → Generate's Rows must use), its split configuration, and its distributions",
+					'Get one document: its data sets with their column names, its split configuration and its distributions',
 				action: 'Get document',
 			},
 			{
@@ -98,7 +98,7 @@ export const documentFields: INodeProperties[] = [
 			},
 		},
 		description:
-			"The document to generate or read. A document is a template that renders rows into Google Slides, Google Docs or a PDF: Generate starts a run of it and returns the produced file's link, Get reads its data sets (with their column names) and its distributions.",
+			'The document to generate or read. Pick it from the list, paste its URL, or enter its ID.',
 		modes: [
 			{
 				displayName: 'From List',
@@ -163,7 +163,7 @@ export const documentFields: INodeProperties[] = [
 				name: 'This Workflow — JSON',
 				value: 'workflow',
 				description:
-					"Send rows from this workflow for one or more of the document's data sets, as a JSON array you write or an expression you build — rows from another node, or from an array inside an item — in place of reading them from their connected source",
+					"Send rows from this workflow for one or more of the document's data sets, as a JSON array, in place of reading them from their connected source",
 			},
 			{
 				name: 'This Workflow — Map Columns',
@@ -247,7 +247,7 @@ export const documentFields: INodeProperties[] = [
 			},
 		},
 		description:
-			"One row is sent per incoming item. The columns the data set selects in SourceToDocs are shown; any other column of its table can be added from the list. 'Map Each Column Manually' sends exactly the values you map; 'Map Automatically' sends each item's own fields, and 'Unknown Fields' under Options decides what happens to a field that is not a column.",
+			"One row is sent per incoming item. 'Map Automatically' sends each item's own fields, and 'Unknown Fields' under Options decides what happens to a field that is not a column.",
 		typeOptions: {
 			loadOptionsDependsOn: ['documentId.value', 'mappedDataSetId'],
 			resourceMapper: {
@@ -283,7 +283,7 @@ export const documentFields: INodeProperties[] = [
 		displayName: 'Options',
 		name: 'options',
 		type: 'collection',
-		placeholder: 'Add Option',
+		placeholder: 'Add option',
 		default: {},
 		displayOptions: {
 			show: {
@@ -307,7 +307,7 @@ export const documentFields: INodeProperties[] = [
 					},
 				},
 				description:
-					'Rows for other data sets of the document, as JSON — for rows that come from another node or from an array inside an item. The data set mapped above may not appear here. Each data set may appear once; a data set left out is still read from its connected source.',
+					'Rows for other data sets of the document, as JSON, for example from another node. Each data set may appear once, and the one mapped above may not appear here.',
 				options: [
 					{
 						displayName: 'Data Set',
@@ -317,7 +317,7 @@ export const documentFields: INodeProperties[] = [
 				],
 			},
 			{
-				displayName: 'Deliver To Names or IDs',
+				displayName: 'Deliver to Names or IDs',
 				name: 'distributionIds',
 				type: 'multiOptions',
 				typeOptions: {
@@ -326,8 +326,7 @@ export const documentFields: INodeProperties[] = [
 				},
 				default: [],
 				description:
-					'The document\'s enabled distributions to deliver this run\'s file to. Leave empty to deliver to all enabled distributions. Not available for a split-configured document — it delivers through its own distributions instead, and this list shows a notice rather than a choice. Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
-				hint: 'Sent as distribution_ids; leaving it empty is the same as omitting distribution_ids from the Public API',
+					'Leave empty to deliver to all enabled distributions. Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 			},
 			{
 				displayName: 'Idempotency Key',
@@ -335,7 +334,7 @@ export const documentFields: INodeProperties[] = [
 				type: 'string',
 				default: '',
 				description:
-					"Leave empty and the node sends its own key, the same on every 'Retry On Fail' try of this node run and different for every run and every execution, so a retry resumes the run it started instead of making a second (as an AI tool the key comes from the request, so two identical calls in one execution share one run). The automatic key adopts only a run created in the last 6 hours. A key you set is sent as it is, and a repeat of it resumes the run that holds it (the output says 'idempotent_replay: true'). A run that ended with status 'failed' is not resumed, whether or not it made its document: the retry starts one new run under the key followed by ':after:' and that run's ID, for your own key too. A key resumes the run that holds it whatever its rows, so when an AI agent fills it, build it from the execution's ID and the model's value: a key the model picks alone can return another call's run",
+					"Leave empty and the node sends its own key, so a 'Retry On Fail' try resumes the run instead of starting a second one. A key you set is sent as it is, and a repeat of it resumes the run that holds it.",
 			},
 			{
 				displayName: 'Max Wait (Seconds)',
@@ -351,7 +350,7 @@ export const documentFields: INodeProperties[] = [
 					},
 				},
 				description:
-					"How long to keep polling before giving up. A run still going when this elapses does not stop the workflow: the item comes back with 'timed_out: true' and the run's ID to poll later. 'Max Wait (Seconds)' is at least 'Poll Every (Seconds)'; both are capped at 3600 s.",
+					"How long to keep polling before giving up. A run still going then comes back with 'timed_out: true' and its ID, to poll later with Run → Get.",
 			},
 			{
 				displayName: 'Poll Every (Seconds)',
@@ -366,8 +365,7 @@ export const documentFields: INodeProperties[] = [
 						waitForCompletion: [false],
 					},
 				},
-				description:
-					"How often to check the run while waiting. 12 polls a minute sits well under the 60-requests-a-minute token limit. 'Poll Every (Seconds)' is at least 2 s; both it and 'Max Wait (Seconds)' are capped at 3600 s, and 'Max Wait (Seconds)' is at least 'Poll Every (Seconds)'.",
+				description: 'How often to check whether the run has finished',
 			},
 			{
 				displayName: 'Unknown Fields',
@@ -395,10 +393,10 @@ export const documentFields: INodeProperties[] = [
 					},
 				},
 				description:
-					"What to do with a row field that is not one of its Data Set's own columns, such as the ID and createdTime an Airtable read adds. In Map Columns it applies to Map Automatically and to Additional Data Sets; Map Each Column Manually sends only the columns you mapped.",
+					"What to do with a field that is not one of the Data Set's columns, such as the ID an Airtable read adds. With Map Columns it applies to Map Automatically and Additional Data Sets only.",
 			},
 			{
-				displayName: 'Wait For Completion',
+				displayName: 'Wait for Completion',
 				name: 'waitForCompletion',
 				type: 'boolean',
 				default: true,

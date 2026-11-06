@@ -18,7 +18,7 @@ export const runOperations: INodeProperties[] = [
 				name: 'Get',
 				value: 'get',
 				description:
-					"Get a run started by Document → Generate: its status, its file and its deliveries. Poll this after Generate with 'Wait For Completion' off, or after a timeout, until 'status' is 'succeeded', 'failed', 'partial_success' or 'cancelled'. For a batch run (one file per driver value), this also lists its children — one item per file — unless 'Summary Only' is on",
+					"Get a run started by Document → Generate: its status, its file and its deliveries. A batch also lists its children, one item per file, unless 'Summary Only' is on.",
 				action: 'Get run',
 			},
 		],
@@ -62,7 +62,7 @@ export const runFields: INodeProperties[] = [
 		displayName: 'Options',
 		name: 'options',
 		type: 'collection',
-		placeholder: 'Add Option',
+		placeholder: 'Add option',
 		default: {},
 		displayOptions: {
 			show: {
@@ -88,7 +88,7 @@ export const runFields: INodeProperties[] = [
 					},
 				},
 				description:
-					"How long to keep trying when the API answers a batch's children list with a busy or temporary answer, before giving up. 'Max Wait (Seconds)' is at least 5 s, the 'Poll Every (Seconds)' default of Document → Generate, and is capped at 3600 s. It does not apply to a single run or to 'Summary Only'. Node version 1 always uses the 300 s default.",
+					"How long to keep retrying a batch's file list while the API is busy, before giving up. Not used for a single run or for 'Summary Only'.",
 			},
 			{
 				displayName: 'Summary Only',

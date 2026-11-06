@@ -435,7 +435,7 @@ const pickers: Array<{ name: string; call: (api: FakeApi) => Promise<unknown>; s
 		call: (api) => callMethod({ kind: 'loadOptions', name: 'getDataSets', baseUrl: api.baseUrl, parameters: withDocument() }),
 	},
 	{
-		name: 'Deliver To (getDistributions)',
+		name: 'Deliver to (getDistributions)',
 		scopedToDeletable: true,
 		call: (api) => callMethod({ kind: 'loadOptions', name: 'getDistributions', baseUrl: api.baseUrl, parameters: withDocument() }),
 	},

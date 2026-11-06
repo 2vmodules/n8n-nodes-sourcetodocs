@@ -339,7 +339,7 @@ describe.concurrent('A conflict that names the run', () => {
 		expect(api.gets().map((g) => g.path)).toEqual([`${API_PATH}/runs/${RUN_1}`]);
 	});
 
-	it('is adopted and then waited for when Wait For Completion is on', async () => {
+	it('is adopted and then waited for when Wait for Completion is on', async () => {
 		const fake = backend({
 			status: 'processing',
 			getRun: (n) => (n === 1 ? undefined : succeededRun()),

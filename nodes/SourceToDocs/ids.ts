@@ -29,7 +29,7 @@ function quoteForMessage(value: unknown): string {
 
 /**
  * `value` as a trimmed UUID, or a `NodeOperationError` that names `parameter` (the label the
- * person sees: Document, Run ID, Project, Data Set, Deliver To) and quotes the value.
+ * person sees: Document, Run ID, Project, Data Set, Deliver to) and quotes the value.
  */
 export function assertId(node: INode, parameter: string, value: unknown): string {
 	const trimmed = typeof value === 'string' ? value.trim() : value;
@@ -50,7 +50,7 @@ export function idForPath(node: INode, parameter: string, value: unknown): strin
 	return encodeURIComponent(assertId(node, parameter, value));
 }
 
-/** A list of ids (Deliver To), each checked; anything but a list is refused. */
+/** A list of ids (Deliver to), each checked; anything but a list is refused. */
 export function assertIds(node: INode, parameter: string, value: unknown): string[] {
 	if (!Array.isArray(value)) {
 		throw new NodeOperationError(

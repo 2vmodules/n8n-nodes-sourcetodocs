@@ -11,13 +11,13 @@ const runFieldsProperty: INodeProperties = {
 	type: 'multiOptions',
 	default: ['run_id', 'status', 'file_url'],
 	options: RUN_OUTPUT.fields.map((field) => ({ name: field, value: field })),
-	description: `The fields to keep. 'run_id' (and 'batch_run_id' on a batch's files), 'timed_out', 'idempotent_replay' and the 'Map Columns' notes ('dropped_keys', 'empty_columns', 'empty_rows', 'missing_split_keys') are always kept when they apply. Choose from the list, or specify the field names using an ${FIELDS_LINK}.`,
+	description: `The fields to keep; the run's ID and the node's own notes, such as 'timed_out', always stay. Choose from the list, or specify the field names using an ${FIELDS_LINK}.`,
 };
 
 const documentFieldsOverrides: Partial<INodeProperties> = {
 	default: DOCUMENT_OUTPUT.defaultFields,
 	options: DOCUMENT_OUTPUT.fields.map((field) => ({ name: field, value: field })),
-	description: `The fields to keep. 'id' is always kept. Choose from the list, or specify the field names using an ${FIELDS_LINK}.`,
+	description: `The fields to keep; 'id' always stays. Choose from the list, or specify the field names using an ${FIELDS_LINK}.`,
 };
 
 /**
@@ -97,7 +97,7 @@ export function getManyLimitProperties(resource: string): INodeProperties[] {
 			default: 50,
 			displayOptions: { show: { ...show, returnAll: [false] } },
 			description: 'Max number of results to return',
-			hint: 'The API has no paging: this cuts the list it returned.',
+			hint: 'The API has no paging: this cuts the list it returned',
 		},
 	];
 }

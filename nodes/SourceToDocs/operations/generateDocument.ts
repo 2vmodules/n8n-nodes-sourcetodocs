@@ -268,7 +268,7 @@ async function buildRequestBody(
 	const rowsFrom = context.getNodeParameter('rowsFrom', 0) as 'connected' | 'workflow' | 'mapped';
 	const distributionIds = assertIds(
 		node,
-		'Deliver To',
+		'Deliver to',
 		context.getNodeParameter('options.distributionIds', 0, []),
 	);
 	const idempotencyKey = idempotencyKeyFrom(
