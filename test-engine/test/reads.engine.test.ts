@@ -124,6 +124,84 @@ describe('Document → Get', () => {
 		expect(result.items('SourceToDocs')[0].pairedItem).toEqual({ item: 0 });
 	});
 
+	describe('Output, node version 1.1', () => {
+		const V11 = { typeVersion: 1.1 };
+		const rich = {
+			...documentPayload.data.document,
+			split: { enabled: false, driver_data_source_id: null, driver_source_table_id: null },
+			data_sets: [
+				{
+					id: 'ds-1', name: 'Clients', alias: 'clients', data_source_id: 'src-1', source_table_id: 'tbl-1',
+					columns: [{ name: 'Client name', type: 'text', selected: true }, { name: 'Status', type: 'select', selected: true, choices: ['Open', 'Closed'] }],
+				},
+			],
+			distributions: [{ id: 'dist-1', type: 'google_drive', is_enabled: true, label: 'Reports folder' }],
+		};
+		const richRouter: Router = () => ok({ document: rich });
+		const get = (parameters: Record<string, unknown> = {}, node: Record<string, unknown> = {}) =>
+			s2d({ resource: 'document', operation: 'get', ...parameters }, { ...V11, ...node });
+
+		it('Simplified (the default) keeps the nine fields in order, with Data Sets and Distributions reduced', async () => {
+			const api = await startApi(richRouter);
+
+			const [item] = (await readWith(api, get())).json('SourceToDocs');
+
+			expect(Object.keys(item)).toEqual(['id', 'name', 'type', 'project_id', 'project_name', 'split_enabled', 'generate_pdf', 'data_sets', 'distributions']);
+			expect(item).toMatchObject({ id: DOC_ID, name: 'Report', project_name: 'Reports', type: 'google_docs' });
+			expect(item.data_sets).toEqual([{ id: 'ds-1', name: 'Clients', columns: ['Client name', 'Status'] }]);
+			expect(item.distributions).toEqual([{ id: 'dist-1', label: 'Reports folder', is_enabled: true }]);
+		});
+
+		it('Raw is the API object as it came, with no run key', async () => {
+			const api = await startApi(richRouter);
+
+			const result = await readWith(api, get({ output: 'raw' }));
+
+			expect(result.json('SourceToDocs')).toEqual([rich]);
+		});
+
+		it('Selected Fields keeps the picked fields and always keeps id', async () => {
+			const api = await startApi(richRouter);
+
+			const picked = (await readWith(api, get({ output: 'selected', outputFields: ['name', 'split', 'created_at'] }))).json('SourceToDocs')[0];
+			const none = (await readWith(api, get({ output: 'selected', outputFields: ['type'] }))).json('SourceToDocs')[0];
+
+			expect(Object.keys(picked)).toEqual(['name', 'split', 'created_at', 'id']);
+			expect(picked.split).toEqual(rich.split);
+			expect(none).toEqual({ type: 'google_docs', id: DOC_ID });
+		});
+
+		it('Selected Fields starts with id, name and data_sets', async () => {
+			const api = await startApi(richRouter);
+
+			const [item] = (await readWith(api, get({ output: 'selected' }))).json('SourceToDocs');
+
+			expect(Object.keys(item)).toEqual(['id', 'name', 'data_sets']);
+			expect(item.data_sets).toEqual(rich.data_sets);
+		});
+
+		it('refuses an unknown or empty selection before any request, naming the document fields', async () => {
+			const api = await startApi(richRouter);
+
+			const unknown = await readWith(api, get({ output: 'selected', outputFields: '=name, status' }));
+			const empty = await readWith(api, get({ output: 'selected', outputFields: '=' }));
+
+			expect(api.requests).toHaveLength(0);
+			expect(unknown.errorOf('SourceToDocs')?.message).toBe("Unknown field in 'Fields': 'status'");
+			expect(unknown.errorOf('SourceToDocs')?.description).toContain('project_name');
+			expect(empty.errorOf('SourceToDocs')?.message).toBe("'Output' is Selected Fields, but 'Fields' is empty");
+		});
+
+		it('version 1 returns the raw object as today, whatever Output a saved node carries', async () => {
+			const api = await startApi(richRouter);
+
+			const result = await readWith(api, s2d({ resource: 'document', operation: 'get', output: 'simplified' }));
+
+			expect(result.json('SourceToDocs')).toEqual([rich]);
+		});
+	});
+
+
 	it('a deleted or foreign document is a node error carrying the API message', async () => {
 		const api = await startApi(() => failure(404, 'not_found', 'Resource not found.'));
 

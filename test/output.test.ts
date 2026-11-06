@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { documentFields } from '../nodes/SourceToDocs/descriptions/DocumentDescription';
 import { projectFields } from '../nodes/SourceToDocs/descriptions/ProjectDescription';
 import { runFields } from '../nodes/SourceToDocs/descriptions/RunDescription';
-import { applyOutput, SELECTABLE_FIELDS } from '../nodes/SourceToDocs/output';
+import { applyOutput, DOCUMENT_FIELDS, DOCUMENT_OUTPUT, SELECTABLE_FIELDS, SIMPLIFIED_DOCUMENT_FIELDS, SIMPLIFIED_RUN_FIELDS } from '../nodes/SourceToDocs/output';
 import { flattenRun, folderUrlOf } from '../nodes/SourceToDocs/runs';
 import type { RunData } from '../nodes/SourceToDocs/types';
 
@@ -47,6 +47,33 @@ describe('applyOutput', () => {
 	it('offers every field a flattened run has', () => {
 		const keys = Object.keys(flattenRun(run, true));
 		for (const key of keys) expect(SELECTABLE_FIELDS).toContain(key);
+	});
+});
+
+describe('what Simplified keeps', () => {
+	it('is within what Selected Fields offers, for a run and for a document', () => {
+		for (const field of SIMPLIFIED_RUN_FIELDS) expect(SELECTABLE_FIELDS).toContain(field);
+		for (const field of SIMPLIFIED_DOCUMENT_FIELDS) expect(DOCUMENT_FIELDS).toContain(field);
+		expect(SIMPLIFIED_RUN_FIELDS).toHaveLength(10);
+	});
+
+	it('a run keeps the ten fields in order, and batch_run_id only when it has one', () => {
+		const flat = { ...flattenRun(run, true), batch_run_id: 'b' };
+		const [kept] = applyOutput([flat], { extended: true, mode: 'simplified', fields: [] });
+		expect(Object.keys(kept)).toEqual([...SIMPLIFIED_RUN_FIELDS, 'batch_run_id']);
+		const [single] = applyOutput([flattenRun(run, true)], { extended: true, mode: 'simplified', fields: [] });
+		expect(Object.keys(single)).toEqual([...SIMPLIFIED_RUN_FIELDS]);
+	});
+
+	it('version 1 still drops only run', () => {
+		const [kept] = applyOutput([flattenRun(run)], { extended: false, mode: 'simplified' });
+		expect(Object.keys(kept)).toEqual(Object.keys(flattenRun(run)).filter((key) => key !== 'run'));
+	});
+
+	it('a document turns Data Sets into names and columns into a list of names', () => {
+		const document = { id: 'd', name: 'n', secret: 1, data_sets: [{ id: 's', name: 'S', alias: 'a', columns: [{ name: 'A', type: 'text', choices: ['x'] }] }], distributions: [{ id: 'x', type: 'download', is_enabled: false, label: 'L' }] };
+		const [kept] = applyOutput([document], { extended: true, mode: 'simplified', fields: [] }, DOCUMENT_OUTPUT);
+		expect(kept).toEqual({ id: 'd', name: 'n', data_sets: [{ id: 's', name: 'S', columns: ['A'] }], distributions: [{ id: 'x', label: 'L', is_enabled: false }] });
 	});
 });
 

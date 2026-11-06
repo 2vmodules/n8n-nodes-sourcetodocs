@@ -1,8 +1,9 @@
 /**
  * The four reads: Project → Get Many, Document → Get Many, Document → Get, Run → Get.
  *
- * Project → Get Many, Document → Get Many and Document → Get return the Public API's own
- * payload as items — a list as one item per element, an object as one item. Run → Get instead
+ * Project → Get Many and Document → Get Many return the Public API's own payload as items, one
+ * item per element. Document → Get returns the document as one item: raw at node version 1, and
+ * from 1.1 as its Output says (Simplified by default). Run → Get instead
  * flattens every item exactly as Document → Generate does: an ordinary run or a Summary
  * Only batch is one flattened item, and an ordinary batch lists its children the same way a
  * finished batch does for Generate — the same `file_url`-at-the-top-level promise holds either
@@ -13,7 +14,7 @@ import type { IDataObject, IExecuteFunctions, INodeExecutionData } from 'n8n-wor
 import { NodeOperationError } from 'n8n-workflow';
 
 import { assertId, idForPath } from '../ids';
-import { applyOutput, readOutputChoice } from '../output';
+import { applyOutput, DOCUMENT_OUTPUT, readOutputChoice } from '../output';
 import {
 	fetchRun,
 	fetchRunChildren,
@@ -91,6 +92,8 @@ export async function executeDocumentGet(
 		'Document',
 		context.getNodeParameter('documentId', itemIndex, undefined, { extractValue: true }),
 	);
+	// Read before the request, so an empty or unknown Selected Fields costs nothing.
+	const output = readOutputChoice(context, itemIndex, DOCUMENT_OUTPUT);
 	const { document } = (await sourceToDocsApiRequest.call(
 		context,
 		'GET',
@@ -98,7 +101,10 @@ export async function executeDocumentGet(
 	)) as {
 		document: PublicDocumentData;
 	};
-	return toItems([document], itemIndex);
+	return toItems(
+		applyOutput([document as unknown as IDataObject], output, DOCUMENT_OUTPUT),
+		itemIndex,
+	);
 }
 
 export async function executeRunGet(

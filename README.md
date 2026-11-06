@@ -36,11 +36,11 @@ panel once the node is verified.
 | Document | Generate | Start a run — from the Document's connected sources, or from rows sent in this workflow — and return the produced file's link |
 | Run | Get | Get a run's status, its file and its deliveries; a batch also lists its children unless Summary Only is on |
 
-Project → Get Many, Document → Get Many and Document → Get return the API's own objects as
-items, unmodified. Run → Get flattens **every** item exactly as Generate does — an ordinary run,
-a Summary Only batch, and each child alike — so the next node reads `file_url` at the top level
-either way. Generate and Run → Get both offer **Output** (below) to keep or drop the full `run`
-object from each item; Document → Get always returns the API's raw object.
+Project → Get Many and Document → Get Many return the API's own objects as items, unmodified.
+Run → Get flattens **every** item exactly as Generate does — an ordinary run, a Summary Only
+batch, and each child alike — so the next node reads `file_url` at the top level either way.
+Generate, Run → Get and (version 1.1) Document → Get offer **Output** (below) to choose how much
+each item carries; Document → Get at version 1 always returns the API's raw object.
 
 Project → Get Many and Document → Get Many (version 1.1) have **Return All** (on) and **Limit**
 (50, shown when Return All is off). The API has no paging, so Limit cuts the list the node
@@ -129,7 +129,7 @@ template end to end: a CRM's rows become a document, with no mapping step.
    [Wait or poll](#wait-or-poll).
 8. Run it. The output item carries `file_url` and `file_name` at the top level — hand those
    straight to a Slack, email or HTTP node. **Output** (default **Simplified**) keeps the
-   flattened fields; **Raw** adds the complete run object the API returned, under `run`; see
+   ten fields most workflows read; **Raw** adds the rest and the complete run object the API returned, under `run`; see
    [Node versions and the Output option](#node-versions-and-the-output-option).
 
 Two things about the input. First, **with 0 input items the node does not run** — n8n skips a
@@ -154,7 +154,7 @@ The node's parameters, in order, for reference. Options is last and holds the op
 | → Rows | json | `{{ $input.all().map(i => i.json) }}` on the first entry | an array of row objects; a run takes a request body of up to 2 MiB (about 15 000 ordinary rows) and up to the plan's row limit per Data Set, see [Limits](#limits) |
 | Data Set (Map Columns) | options | — | shown for `mapped` only; the one Data Set whose columns are mapped |
 | Columns | resource mapper | Map Each Column Manually | shown for `mapped` only; see [below](#map-columns-instead-of-writing-json) |
-| Output | options | `Simplified` | node version 1.1 and later: `Simplified`, `Raw` or `Selected Fields` |
+| Output | options | `Simplified` | node version 1.1 and later: `Simplified`, `Raw` or `Selected Fields`; Document → Get has its own, see below |
 | Fields | multi-select | `run_id`, `status`, `file_url` | shown for `Selected Fields` only; `run_id` (and `batch_run_id` on a batch's files) is always kept, so a timed-out item can still be polled |
 | Simplify | boolean | `true` | node version 1 only; off keeps the full run object under `run` |
 | Options | collection | empty | the optional fields below; each is added with **Add Option** and, left out, keeps its default |
@@ -168,6 +168,8 @@ The node's parameters, in order, for reference. Options is last and holds the op
 
 
 Run → Get takes a Run ID and the same Output (or Simplify, at version 1); its own **Options** collection holds **Summary Only** and, from node version 1.1, **Max Wait**.
+
+Document → Get has an **Output** of its own from node version 1.1, with **Fields** offering the document's own keys (`id`, `project_id`, `project_name`, `name`, `type`, `split_enabled`, `generate_pdf`, `created_at`, `updated_at`, `split`, `data_sets`, `distributions`; default `id`, `name`, `data_sets`, and `id` always stays). Version 1 returns the raw document.
 
 Every id the node puts in a URL or in the request — the Document in any of its three modes, the
 Project, the Run, a Data Set, a Deliver To entry — must be a UUID. Anything else, an expression
@@ -380,7 +382,7 @@ tying up a worker is the wrong trade: the node then returns as soon as the run i
 schedule, from a webhook your own system calls, or from a loop with a Wait node in between —
 until `status` is one of `succeeded`, `failed`, `partial_success` or `cancelled`. For a split
 Document, the same **Run → Get** on the batch's own id lists every child file once it is done
-(or add **Options → Summary Only** to get the batch's own counters as a single item instead).
+(or add **Options → Summary Only** to get the batch's own counters as a single item instead: `file_count` under Simplified, and `progress`, `folder_url` and `kind` under Raw or Selected Fields).
 
 A run that times out inside **Options → Wait For Completion** is not an error either: the item comes back
 with `timed_out: true` and the run's id, ready for the same **Run → Get** poll. That holds even
@@ -476,14 +478,25 @@ keeps the **Simplify** boolean and the output items exactly as they were. A node
 
 | Output | Generate and Run → Get return |
 | --- | --- |
-| **Simplified** (default) | the flattened fields: `run_id`, `status`, `file_url`, `file_name`, `file_count`, `deliveries`, `warnings`, `generation_stats`, `folder_url`, … |
-| **Raw** | the same, plus the API's complete run object under `run` |
-| **Selected Fields** | only the keys you tick under **Fields** (one is required; an unknown name is refused before anything is sent) |
+| **Simplified** (default) | exactly ten fields, in this order: `run_id`, `status`, `file_url`, `file_name`, `split_key`, `file_count`, `deliveries`, `warnings`, `error_code`, `error_message`; a batch's file also keeps `batch_run_id`, the way back to its batch |
+| **Raw** | every flattened field (the ten, plus `kind`, `page_count`, `progress`, `generation_stats`, `folder_url`, `document_id`, `processing_started_at`, `finished_at`) and the API's complete run object under `run` |
+| **Selected Fields** | only the keys you tick under **Fields**, any of the flattened fields above or `run` (one is required; an unknown name is refused before anything is sent) |
 
-Version 1.1 also adds, to the flattened item: `warnings`, `generation_stats`, `folder_url` (the
-batch folder, from the run's destinations), `document_id`, `processing_started_at`,
-`finished_at`, and each delivery's `distribution_id`. A batch's children carry the batch's
-`folder_url` and `generation_stats` and their own `warnings`. Version 1 does not get these.
+Version 1.1 flattens `warnings`, `generation_stats`, `folder_url` (the batch folder, from the
+run's destinations), `document_id`, `processing_started_at`, `finished_at`, and each delivery's
+`distribution_id`; Simplified keeps `warnings` and the deliveries, and Raw or Selected Fields give
+the rest. A batch's children carry the batch's `folder_url` and `generation_stats` and their own
+`warnings`. Version 1 does not get these.
+
+Document → Get, from version 1.1:
+
+| Output | Document → Get returns |
+| --- | --- |
+| **Simplified** (default) | `id`, `name`, `type`, `project_id`, `project_name`, `split_enabled`, `generate_pdf`, `data_sets` as `{ id, name, columns }` where `columns` is a list of column **names**, and `distributions` as `{ id, label, is_enabled }`. `choices` of a select column and the rest of each Data Set are not kept: use Raw for them. |
+| **Raw** | the document exactly as the API returned it |
+| **Selected Fields** | only the top-level keys you tick (default `id`, `name`, `data_sets`); `id` always stays |
+
+An expression such as `data_sets[0].columns[0].name` therefore works under Raw and not under Simplified, where it is `data_sets[0].columns[0]`.
 
 These keys are added after the selection, so they survive every Output choice and version:
 `timed_out`, `idempotent_replay`, `dropped_keys`, `empty_columns`, `empty_rows` and

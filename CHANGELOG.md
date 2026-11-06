@@ -24,6 +24,14 @@ All notable changes to `@twovmodules/n8n-nodes-sourcetodocs` are recorded here. 
   Columns rows) and **Additional Data Sets** (Map Columns) moved into Generate's **Options**, with
   their old behaviour and the same defaults. A workflow saved with 1.0.0 that set **Unknown Fields** to
   Refuse goes back to Drop, and its Additional Data Sets are lost; set them again under Options.
+- **Simplified output keeps ten fields, and Document → Get has an Output option.** At node version
+  1.1, Simplified on Generate and Run → Get returns `run_id`, `status`, `file_url`, `file_name`,
+  `split_key`, `file_count`, `deliveries`, `warnings`, `error_code` and `error_message` (a batch's
+  files also keep `batch_run_id`); `kind`, `page_count`, `progress`, `folder_url`,
+  `generation_stats`, `document_id` and the timestamps are in Raw and Selected Fields. Document →
+  Get (version 1.1) now offers Simplified (the default), Raw and Selected Fields: Simplified turns
+  a Data Set's columns into a list of names and leaves out their `choices`, so use Raw for those.
+  Version 1 is unchanged.
 
 ## [1.0.0] - 2026-10-13
 

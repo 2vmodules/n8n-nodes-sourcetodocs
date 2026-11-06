@@ -1,5 +1,6 @@
 import type { INodeProperties } from 'n8n-workflow';
 
+import { DOCUMENT_OUTPUT } from '../output';
 import { getManyLimitProperties, outputProperties } from './OutputDescription';
 import { DOCUMENT_URL_REGEX, DOCUMENT_URL_VALIDATION_REGEX, UUID_REGEX } from './shared';
 
@@ -146,6 +147,7 @@ export const documentFields: INodeProperties[] = [
 			},
 		],
 	},
+	...outputProperties('document', 'get', DOCUMENT_OUTPUT),
 	{
 		displayName: 'Rows Come From',
 		name: 'rowsFrom',

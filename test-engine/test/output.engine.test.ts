@@ -54,6 +54,8 @@ const talkative = runPayload({
 
 /** Everything a v1 item has, in today's key order. */
 const V1_KEYS = ['run_id', 'status', 'kind', 'split_key', 'file_url', 'file_name', 'page_count', 'file_count', 'progress', 'deliveries', 'error_code', 'error_message'];
+/** What Simplified keeps at 1.1, in this order. */
+const SIMPLIFIED_KEYS = ['run_id', 'status', 'file_url', 'file_name', 'split_key', 'file_count', 'deliveries', 'warnings', 'error_code', 'error_message'];
 const NEW_KEYS = ['warnings', 'generation_stats', 'folder_url', 'document_id', 'processing_started_at', 'finished_at'];
 
 const routerFor = (run: Record<string, unknown>, children: Record<string, unknown>[] = []): Router => (request) => {
@@ -110,6 +112,10 @@ describe('both versions keep their other parameters, and the optional fields liv
 		expect(storedParameters(1.1, { resource: 'document', operation: 'generate', documentId: doc, rowsFrom: 'connected' })).toEqual({
 			resource: 'document', operation: 'generate', documentId: doc, rowsFrom: 'connected', options: {}, output: 'simplified',
 		});
+		expect(storedParameters(1.1, { resource: 'document', operation: 'get', documentId: doc })).toEqual({
+			resource: 'document', operation: 'get', documentId: doc, output: 'simplified',
+		});
+		expect(storedParameters(1.1, { resource: 'document', operation: 'get', documentId: doc, output: 'selected' })).toMatchObject({ output: 'selected', outputFields: ['id', 'name', 'data_sets'] });
 		expect(storedParameters(1.1, { resource: 'project', operation: 'getMany' })).toEqual({ resource: 'project', operation: 'getMany', returnAll: true });
 		expect(storedParameters(1.1, { resource: 'document', operation: 'getMany', projectId: 'p', returnAll: false })).toEqual({
 			resource: 'document', operation: 'getMany', projectId: 'p', returnAll: false, limit: 50,
@@ -188,12 +194,12 @@ describe('a v1 node and a v1.1 node side by side', () => {
 
 		const result = await runWorkflow({
 			baseUrl: api.baseUrl,
-			nodes: [emit([{ json: {} }]), runGet({}, { name: 'Old' }), runGet({}, { name: 'New', ...V11 })],
+			nodes: [emit([{ json: {} }]), runGet({}, { name: 'Old' }), runGet({ output: 'raw' }, { name: 'New', ...V11 })],
 			connections: [['Emit', 'Old'], ['Emit', 'New']],
 		});
 
 		expect(Object.keys(result.json('Old')[0])).toEqual(V1_KEYS);
-		expect(Object.keys(result.json('New')[0])).toEqual([...V1_KEYS, ...NEW_KEYS]);
+		expect(Object.keys(result.json('New')[0])).toEqual([...V1_KEYS, ...NEW_KEYS, 'run']);
 	});
 
 	it('v1 Generate keeps its item too, and Simplify off still adds only run', async () => {
@@ -227,10 +233,10 @@ describe('a v1 node and a v1.1 node side by side', () => {
 });
 
 describe('version 1.1 run fields', () => {
-	it('a single run carries warnings, generation_stats, folder_url, document_id and the timestamps', async () => {
+	it('a single run carries warnings, generation_stats, folder_url, document_id and the timestamps (Raw)', async () => {
 		const api = await startApi(routerFor(talkative as Record<string, unknown>));
 
-		const result = await through(api, s2dConnected({}, V11));
+		const result = await through(api, s2dConnected({ output: 'raw' }, V11));
 
 		expect(result.json('SourceToDocs')[0]).toMatchObject({
 			warnings: [{ code: 'missing_image', message: 'Image not found', where: 'slide 2' }],
@@ -241,7 +247,7 @@ describe('version 1.1 run fields', () => {
 			finished_at: '2026-01-01T00:00:09Z',
 			status: 'partial_success',
 		});
-		expect(result.json('SourceToDocs')[0]).not.toHaveProperty('run');
+		expect(result.json('SourceToDocs')[0]).toHaveProperty('run');
 	});
 
 	it('a run the API sent with none of them gets [] and null, not missing keys', async () => {
@@ -249,7 +255,7 @@ describe('version 1.1 run fields', () => {
 		for (const key of ['warnings', 'generation_stats', 'destinations']) delete bare[key];
 		const api = await startApi(routerFor(bare));
 
-		const item = (await through(api, s2dConnected({}, V11))).json('SourceToDocs')[0];
+		const item = (await through(api, s2dConnected({ output: 'raw' }, V11))).json('SourceToDocs')[0];
 
 		expect(item).toMatchObject({ warnings: [], generation_stats: null, folder_url: null, processing_started_at: null, finished_at: null });
 	});
@@ -268,7 +274,7 @@ describe('version 1.1 run fields', () => {
 		it('puts the batch folder URL and generation_stats on every child, from the first destination that has a link', async () => {
 			const api = await startApi(routerFor(batch, children));
 
-			const items = (await through(api, s2dConnected({ options: { waitForCompletion: true } }, V11))).json('SourceToDocs');
+			const items = (await through(api, s2dConnected({ options: { waitForCompletion: true }, output: 'raw' }, V11))).json('SourceToDocs');
 
 			expect(items).toHaveLength(2);
 			for (const item of items) {
@@ -279,7 +285,7 @@ describe('version 1.1 run fields', () => {
 		it('an empty batch is itself the item, and generation_stats says why it has 0 files', async () => {
 			const api = await startApi(routerFor({ ...batch, file_count: 0 }, []));
 
-			const items = (await through(api, s2dConnected({ options: { waitForCompletion: true } }, V11))).json('SourceToDocs');
+			const items = (await through(api, s2dConnected({ options: { waitForCompletion: true }, output: 'raw' }, V11))).json('SourceToDocs');
 
 			expect(items).toHaveLength(1);
 			expect(items[0]).toMatchObject({ run_id: BATCH_ID, file_count: 0, folder_url: FOLDER, generation_stats: { skipped_null: 3 } });
@@ -288,7 +294,7 @@ describe('version 1.1 run fields', () => {
 		it('Run → Get reads the same fields', async () => {
 			const api = await startApi(routerFor(batch, children));
 
-			const items = (await through(api, runGet({ runId: BATCH_ID }, V11))).json('SourceToDocs');
+			const items = (await through(api, runGet({ runId: BATCH_ID, output: 'raw' }, V11))).json('SourceToDocs');
 
 			expect(items.map((i) => i.folder_url)).toEqual([FOLDER, FOLDER]);
 		});
@@ -302,6 +308,79 @@ describe('version 1.1 run fields', () => {
 			expect(items[0]).not.toHaveProperty('folder_url');
 			expect(items[0]).not.toHaveProperty('generation_stats');
 		});
+	});
+});
+
+describe('version 1.1 Simplified keeps ten fields', () => {
+	const batch = { id: BATCH_ID, kind: 'batch', status: 'succeeded', file_count: 2, folder_url: FOLDER };
+	const children = [runPayload({ id: 'child-1', split_key: 'Acme' }), runPayload({ id: 'child-2', split_key: 'Globex' })];
+	const waiting = { options: { waitForCompletion: true } };
+
+	it('a Generate item has exactly the ten keys, in order, and none of the other flattened fields', async () => {
+		const api = await startApi(routerFor(talkative as Record<string, unknown>));
+
+		const item = (await through(api, s2dConnected({}, V11))).json('SourceToDocs')[0];
+
+		expect(Object.keys(item)).toEqual(SIMPLIFIED_KEYS);
+		expect(item).toMatchObject({ status: 'partial_success', file_url: file.document_url, warnings: talkative.warnings });
+	});
+
+	it('a Run → Get item has the same ten keys', async () => {
+		const api = await startApi(routerFor(talkative as Record<string, unknown>));
+
+		const item = (await through(api, runGet({}, V11))).json('SourceToDocs')[0];
+
+		expect(Object.keys(item)).toEqual(SIMPLIFIED_KEYS);
+	});
+
+	it('a batch child has the ten keys and batch_run_id, the way back to its batch', async () => {
+		const api = await startApi(routerFor(batch, children));
+
+		const items = (await through(api, s2dConnected(waiting, V11))).json('SourceToDocs');
+
+		expect(items).toHaveLength(2);
+		for (const item of items) {
+			expect(Object.keys(item)).toEqual([...SIMPLIFIED_KEYS, 'batch_run_id']);
+			expect(item).toMatchObject({ batch_run_id: BATCH_ID, file_count: 2 });
+		}
+	});
+
+	it('an empty batch is its own one item and still says file_count 0', async () => {
+		const api = await startApi(routerFor({ ...batch, file_count: 0 }, []));
+
+		const items = (await through(api, s2dConnected(waiting, V11))).json('SourceToDocs');
+
+		expect(items).toHaveLength(1);
+		expect(Object.keys(items[0])).toEqual(SIMPLIFIED_KEYS);
+		expect(items[0]).toMatchObject({ run_id: BATCH_ID, status: 'succeeded', file_url: null, file_count: 0 });
+	});
+
+	it('Run → Get with Summary Only on returns the batch as one item that carries its file_count', async () => {
+		const api = await startApi(routerFor(batch, children));
+
+		const items = (await through(api, runGet({ runId: BATCH_ID, options: { summaryOnly: true } }, V11))).json('SourceToDocs');
+
+		expect(items).toHaveLength(1);
+		expect(Object.keys(items[0])).toEqual(SIMPLIFIED_KEYS);
+		expect(items[0]).toMatchObject({ run_id: BATCH_ID, file_count: 2 });
+	});
+
+	it('the notes the node adds stay, beside the ten keys', async () => {
+		const api = await startApi((request) => (request.method === 'POST' ? ok({ run: runPayload({ status: 'pending' }) }, 201) : ok({ run: runPayload({ status: 'processing' }) })));
+
+		const item = (await through(api, s2dConnected({ options: { waitForCompletion: true, maxWait: 2, pollEvery: 2 } }, V11))).json('SourceToDocs')[0];
+
+		expect(Object.keys(item)).toEqual([...SIMPLIFIED_KEYS, 'timed_out']);
+	});
+
+	it('version 1.1 Raw and Selected Fields still offer every flattened field', async () => {
+		const api = await startApi(routerFor(talkative as Record<string, unknown>));
+
+		const raw = (await through(api, s2dConnected({ output: 'raw' }, V11))).json('SourceToDocs')[0];
+		const selected = (await through(api, s2dConnected({ output: 'selected', outputFields: ['kind', 'progress', 'page_count', 'document_id'] }, V11))).json('SourceToDocs')[0];
+
+		expect(Object.keys(raw)).toEqual([...V1_KEYS, ...NEW_KEYS, 'run']);
+		expect(Object.keys(selected)).toEqual(['kind', 'progress', 'page_count', 'document_id', 'run_id']);
 	});
 });
 
@@ -319,10 +398,10 @@ describe('version 1.1 Output', () => {
 	it.each([
 		['Generate', (extra: INodeParameters) => s2dConnected(extra, V11)],
 		['Run → Get', (extra: INodeParameters) => runGet(extra, V11)],
-	])('%s: Simplified has the new fields and no run, Raw adds the full run, Selected keeps the picked fields only', async (_name, node) => {
+	])('%s: Simplified keeps the ten fields and no run, Raw adds the full run, Selected keeps the picked fields only', async (_name, node) => {
 		const { simplified, raw, selected } = await modes(node, talkative as Record<string, unknown>);
 
-		expect(Object.keys(simplified)).toEqual(expect.arrayContaining([...V1_KEYS, ...NEW_KEYS]));
+		expect(Object.keys(simplified)).toEqual(SIMPLIFIED_KEYS);
 		expect(simplified).not.toHaveProperty('run');
 		expect(raw.run).toEqual(talkative);
 		expect(Object.keys(raw)).toEqual(expect.arrayContaining([...V1_KEYS, ...NEW_KEYS, 'run']));
@@ -335,8 +414,7 @@ describe('version 1.1 Output', () => {
 
 		const item = (await through(api, s2dConnected({}, V11))).json('SourceToDocs')[0];
 
-		expect(item).toHaveProperty('warnings');
-		expect(item).not.toHaveProperty('run');
+		expect(Object.keys(item)).toEqual(SIMPLIFIED_KEYS);
 	});
 
 	it('Selected Fields can keep the whole run', async () => {

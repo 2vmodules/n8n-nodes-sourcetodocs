@@ -961,6 +961,7 @@ export const documentPayload = {
 		document: {
 			id: DOC_ID,
 			project_id: 'a0000000-0000-4000-8000-000000000001',
+			project_name: 'Reports',
 			name: 'Report',
 			type: 'google_docs',
 			split_enabled: false,
