@@ -88,7 +88,7 @@ describe('the words of each way Generate stops', () => {
 		['Rows that are not JSON', s2dJson([{ dataSetId: DS_ID, rows: '={{ "not json" }}' }]), "'Rows'"],
 		['an entry with no Data Set', s2dJson([{ dataSetId: '', rows: '[]' }]), "'Data Set'"],
 		['Map Columns with nothing mapped', s2dMapped({}), "'Map Columns'"],
-		['Map Columns with the mapped Data Set listed again', s2dMapped({ 'Client name': 'x' }, { additionalDataSets: { values: [{ dataSetId: DS_ID, rows: '[]' }] } }), "'Additional Data Sets'"],
+		['Map Columns with the mapped Data Set listed again', s2dMapped({ 'Client name': 'x' }, { options: { additionalDataSets: { values: [{ dataSetId: DS_ID, rows: '[]' }] } } }), "'Additional Data Sets'"],
 		['a Deliver To that is not a list', s2dConnected({ options: { distributionIds: '={{ "x" }}' } }), "'Deliver To'"],
 		['Selected Fields with nothing selected', s2dConnected({ output: 'selected', outputFields: [] }, {}), "'Fields'"],
 	])('%s names its parameter and sends nothing', async (_title, node, quoted) => {
@@ -175,7 +175,7 @@ describe('a request too big for the API, and a source with too many rows', () =>
 	it('413 request_body_too_large says what happened, how many rows fit, and the way out', async () => {
 		const api = await startApi(() => refused(413, 'The request body is larger than 2 MB.', 'request_body_too_large'));
 
-		const result = await run(api, s2dJson([{ dataSetId: DS_ID, rows: '[{"Client name":"A"}]' }], { unknownKeys: 'refuse' }));
+		const result = await run(api, s2dJson([{ dataSetId: DS_ID, rows: '[{"Client name":"A"}]' }], { options: { unknownKeys: 'refuse' } }));
 
 		const error = expectWording(errorOf(result));
 		expect(error.name).toBe('NodeApiError');
@@ -190,7 +190,7 @@ describe('a request too big for the API, and a source with too many rows', () =>
 	it('422 source_too_large says what happened and the way out, and keeps the code as a fact for Continue On Fail', async () => {
 		const api = await startApi(() => refused(422, "inline_data for data set 'Lines' has more rows than the maximum allowed 100000.", 'source_too_large', { data_set_id: [DS_ID] }));
 
-		const result = await run(api, { ...s2dJson([{ dataSetId: DS_ID, rows: '[{"Client name":"A"}]' }], { unknownKeys: 'refuse' }), continueOnFail: true } as TestNode);
+		const result = await run(api, { ...s2dJson([{ dataSetId: DS_ID, rows: '[{"Client name":"A"}]' }], { options: { unknownKeys: 'refuse' } }), continueOnFail: true } as TestNode);
 
 		const item = result.json('SourceToDocs')[0];
 		expect(item.error).toBe('A Data Set has more rows than one run may hold');
@@ -202,8 +202,8 @@ describe('a request too big for the API, and a source with too many rows', () =>
 describe('a workflow saved before the Unknown Fields label', () => {
 	// A saved workflow holds the parameter's name, never its label, so the new label changes nothing it runs.
 	it.each([
-		['JSON', s2dJson([{ dataSetId: DS_ID, rows: '[{"id":"rec1","Client name":"A"}]' }], { unknownKeys: 'refuse' })],
-		['Map Columns', s2dMapped(null, { unknownKeys: 'refuse' }, 'autoMapInputData')],
+		['JSON', s2dJson([{ dataSetId: DS_ID, rows: '[{"id":"rec1","Client name":"A"}]' }], { options: { unknownKeys: 'refuse' } })],
+		['Map Columns', s2dMapped(null, { options: { unknownKeys: 'refuse' } }, 'autoMapInputData')],
 	])('still reads unknownKeys: refuse in %s mode, sending the rows as given', async (_mode, node) => {
 		const api = await startApi(defaultRouter());
 

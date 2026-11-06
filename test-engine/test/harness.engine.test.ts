@@ -5,9 +5,17 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { emit, runAsTool, runTemplate, runWorkflow, s2d, s2dConnected, type TestNode } from './harness';
+import { emit, OPTION_NAMES, runAsTool, runTemplate, runWorkflow, s2d, s2dConnected, s2dDescription, type TestNode } from './harness';
 
 const run = (node: TestNode) => runWorkflow({ baseUrl: 'http://127.0.0.1:1', nodes: [emit([{ json: {} }]), node], connections: [['Emit', 'SourceToDocs']] });
+
+it('guards every name of the Options collections, and no others', () => {
+	const inCollections = s2dDescription.properties
+		.filter((property) => property.name === 'options')
+		.flatMap((property) => (property.options as Array<{ name: string }>).map((item) => item.name));
+
+	expect([...OPTION_NAMES].sort()).toEqual([...new Set(inCollections)].sort());
+});
 
 describe('s2d', () => {
 	it("keeps its don't-wait default under options, and merges the caller's options over it", () => {
@@ -21,8 +29,8 @@ describe('s2d', () => {
 	});
 });
 
-describe.each(['distributionIds', 'waitForCompletion', 'maxWait', 'pollEvery', 'idempotencyKey', 'summaryOnly'])('a test that sets %s at the top level', (name) => {
-	const value = name === 'distributionIds' ? [] : name === 'idempotencyKey' ? 'k' : true;
+describe.each([...OPTION_NAMES])('a test that sets %s at the top level', (name) => {
+	const value = name === 'distributionIds' ? [] : name === 'additionalDataSets' ? {} : name === 'idempotencyKey' || name === 'unknownKeys' ? 'drop' : true;
 
 	it('is refused by runWorkflow', async () => {
 		await expect(run(s2dConnected({ [name]: value }))).rejects.toThrow(`${name} at the top level`);

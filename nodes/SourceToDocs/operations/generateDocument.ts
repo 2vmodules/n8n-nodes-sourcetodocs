@@ -296,7 +296,9 @@ async function buildRequestBody(
 	if (rowsFrom === 'workflow') {
 		const dataSets = context.getNodeParameter('dataSets', 0, {}) as DataSetsParameter;
 		const parsedEntries = parseDataSetEntries(node, dataSets.values ?? []);
-		const unknownKeys = context.getNodeParameter('unknownKeys', 0, 'drop') as 'drop' | 'refuse';
+		const unknownKeys = context.getNodeParameter('options.unknownKeys', 0, 'drop') as
+			| 'drop'
+			| 'refuse';
 
 		({ inlineData: body.inline_data, droppedKeys } = await applyUnknownKeys(
 			readDocument,
@@ -308,7 +310,11 @@ async function buildRequestBody(
 		emptyRows = countEmptyRows(body.inline_data as IDataObject);
 	} else if (rowsFrom === 'mapped') {
 		const mapped = buildMappedEntry(context);
-		const additional = context.getNodeParameter('additionalDataSets', 0, {}) as DataSetsParameter;
+		const additional = context.getNodeParameter(
+			'options.additionalDataSets',
+			0,
+			{},
+		) as DataSetsParameter;
 		const additionalEntries = parseDataSetEntries(
 			node,
 			additional.values ?? [],
@@ -324,7 +330,9 @@ async function buildRequestBody(
 				},
 			);
 		}
-		const unknownKeys = context.getNodeParameter('unknownKeys', 0, 'drop') as 'drop' | 'refuse';
+		const unknownKeys = context.getNodeParameter('options.unknownKeys', 0, 'drop') as
+			| 'drop'
+			| 'refuse';
 		emptyColumns = mapped.emptyColumns;
 		missingKeys = await checkSplitKey(readDocument, mapped.entry);
 

@@ -95,7 +95,7 @@ describe('Map Columns, Map Each Column Manually', () => {
 	it('reads the document once, for the split key and not to drop keys: a mapped row has none to drop', async () => {
 		const api = await startApi();
 
-		await mapColumns(api, [{ json: { name: 'Acme' } }], s2dMapped({ 'Client name': '={{ $json.name }}' }, { unknownKeys: 'drop' }));
+		await mapColumns(api, [{ json: { name: 'Acme' } }], s2dMapped({ 'Client name': '={{ $json.name }}' }, { options: { unknownKeys: 'drop' } }));
 
 		expect(api.requests.map((r) => r.method)).toEqual(['GET', 'POST']);
 	});
@@ -276,7 +276,7 @@ describe('Map Columns, a schema that has gone stale', () => {
 					})
 				: defaults(request, all),
 		);
-		const node = s2dMapped({ 'Client name': '={{ $json.n }}', 'Old column': '={{ $json.n }}' }, { unknownKeys: 'drop' });
+		const node = s2dMapped({ 'Client name': '={{ $json.n }}', 'Old column': '={{ $json.n }}' }, { options: { unknownKeys: 'drop' } });
 
 		const result = await mapColumns(api, [{ json: { n: 'A' } }], node);
 
@@ -307,7 +307,7 @@ describe('Map Columns, Map Automatically', () => {
 	it('sends every item its own fields, Unknown Fields dropping what is not a column, and reports it', async () => {
 		const api = await startApi();
 
-		const result = await mapColumns(api, items, s2dMapped(null, { unknownKeys: 'drop' }, 'autoMapInputData'));
+		const result = await mapColumns(api, items, s2dMapped(null, { options: { unknownKeys: 'drop' } }, 'autoMapInputData'));
 
 		expect(api.requests.map((r) => `${r.method} ${r.path}`)).toEqual([
 			`GET ${API_PATH}/documents/${DOC_ID}`,
@@ -321,7 +321,7 @@ describe('Map Columns, Map Automatically', () => {
 	it('Refuse sends the fields exactly as given and reads the document only for the split key', async () => {
 		const api = await startApi();
 
-		const result = await mapColumns(api, items, s2dMapped(null, { unknownKeys: 'refuse' }, 'autoMapInputData'));
+		const result = await mapColumns(api, items, s2dMapped(null, { options: { unknownKeys: 'refuse' } }, 'autoMapInputData'));
 
 		expect(api.requests.map((r) => r.method)).toEqual(['GET', 'POST']);
 		expect(sentRows(api)).toEqual(items.map((item) => item.json));
@@ -350,11 +350,47 @@ describe('Map Columns, Map Automatically', () => {
 describe('Map Columns, Additional Data Sets', () => {
 	const row = [{ json: { name: 'Acme' } }];
 
+	it('with Options left empty, Unknown Fields is Drop in JSON mode: the unknown field is removed and reported', async () => {
+		const api = await startApi();
+		const node = s2dJson([{ dataSetId: DS_ID, rows: '[{"Client name":"A","junk":1}]' }]);
+
+		const result = await mapColumns(api, row, node);
+
+		expect(sentRows(api)).toEqual([{ 'Client name': 'A' }]);
+		expect(result.json('SourceToDocs')[0].dropped_keys).toEqual({ [DS_ID]: ['junk'] });
+	});
+
+	it('Unknown Fields under Options set to Refuse sends the JSON rows as given', async () => {
+		const api = await startApi();
+		const node = s2dJson([{ dataSetId: DS_ID, rows: '[{"Client name":"A","junk":1}]' }], { options: { unknownKeys: 'refuse' } });
+
+		const result = await mapColumns(api, row, node);
+
+		expect(sentRows(api)).toEqual([{ 'Client name': 'A', junk: 1 }]);
+		expect(result.json('SourceToDocs')[0].dropped_keys).toBeUndefined();
+	});
+
+	it('Additional Data Sets under Options reach inline_data beside Map Automatically rows', async () => {
+		const api = await startApi();
+		const node = s2dMapped(
+			null,
+			{ options: { additionalDataSets: { values: [{ dataSetId: DS2_ID, rows: '[{"Sku":"X1","junk":1}]' }] } } },
+			'autoMapInputData',
+		);
+
+		const result = await mapColumns(api, [{ json: { 'Client name': 'Acme', id: 'rec1' } }], node);
+
+		expect(bodyOf(api.posts()[0])).toEqual({
+			inline_data: { [DS_ID]: [{ 'Client name': 'Acme' }], [DS2_ID]: [{ Sku: 'X1' }] },
+		});
+		expect(result.json('SourceToDocs')[0].dropped_keys).toEqual({ [DS_ID]: ['id'], [DS2_ID]: ['junk'] });
+	});
+
 	it('merges the additional Data Sets beside the mapped one', async () => {
 		const api = await startApi();
 		const node = s2dMapped(
 			{ 'Client name': '={{ $json.name }}' },
-			{ unknownKeys: 'drop', additionalDataSets: { values: [{ dataSetId: DS2_ID, rows: '[{"Sku":"X1","junk":1}]' }] } },
+			{ options: { unknownKeys: 'drop', additionalDataSets: { values: [{ dataSetId: DS2_ID, rows: '[{"Sku":"X1","junk":1}]' }] } } },
 		);
 
 		const result = await mapColumns(api, row, node);
@@ -369,7 +405,7 @@ describe('Map Columns, Additional Data Sets', () => {
 		const api = await startApi();
 		const node = s2dMapped(
 			{ 'Client name': '={{ $json.name }}', 'Added later': 'kept' },
-			{ unknownKeys: 'drop', additionalDataSets: { values: [{ dataSetId: DS2_ID, rows: '[{"Sku":"X1","junk":1}]' }] } },
+			{ options: { unknownKeys: 'drop', additionalDataSets: { values: [{ dataSetId: DS2_ID, rows: '[{"Sku":"X1","junk":1}]' }] } } },
 		);
 
 		const result = await mapColumns(api, row, node);
@@ -384,7 +420,7 @@ describe('Map Columns, Additional Data Sets', () => {
 		const api = await startApi();
 		const node = s2dMapped(
 			{ 'Client name': '={{ $json.name }}' },
-			{ unknownKeys: 'refuse', additionalDataSets: { values: [{ dataSetId: DS2_ID, rows: '[{"Sku":"X1"}]' }] } },
+			{ options: { unknownKeys: 'refuse', additionalDataSets: { values: [{ dataSetId: DS2_ID, rows: '[{"Sku":"X1"}]' }] } } },
 		);
 
 		await mapColumns(api, row, node);
@@ -396,7 +432,7 @@ describe('Map Columns, Additional Data Sets', () => {
 		const api = await startApi();
 		const node = s2dMapped(
 			{ 'Client name': '={{ $json.name }}' },
-			{ additionalDataSets: { values: [{ dataSetId: DS_ID, rows: '[]' }] } },
+			{ options: { additionalDataSets: { values: [{ dataSetId: DS_ID, rows: '[]' }] } } },
 		);
 
 		const result = await mapColumns(api, row, node);
@@ -409,7 +445,7 @@ describe('Map Columns, Additional Data Sets', () => {
 		const api = await startApi();
 		const node = s2dMapped(
 			{ 'Client name': '={{ $json.name }}' },
-			{ additionalDataSets: { values: [{ dataSetId: DS2_ID, rows: 'nope' }] } },
+			{ options: { additionalDataSets: { values: [{ dataSetId: DS2_ID, rows: 'nope' }] } } },
 		);
 
 		const result = await mapColumns(api, row, node);
@@ -513,7 +549,7 @@ describe('Map Columns reports what was empty', () => {
 		const api = await startApi();
 		const items = [{ json: { 'Client name': 'A' } }, { json: {}, binary: {} }, { json: {} }];
 
-		const result = await mapColumns(api, items, s2dMapped(null, { unknownKeys: 'refuse' }, 'autoMapInputData'));
+		const result = await mapColumns(api, items, s2dMapped(null, { options: { unknownKeys: 'refuse' } }, 'autoMapInputData'));
 
 		expect(sentRows(api)).toEqual([{ 'Client name': 'A' }, {}, {}]);
 		expect(result.json('SourceToDocs')[0].empty_rows).toBe(2);
@@ -526,7 +562,7 @@ describe('Map Columns reports what was empty', () => {
 	it('Map Automatically with nothing but blank rows is sent too (the guard is for manual mapping)', async () => {
 		const api = await startApi();
 
-		const result = await mapColumns(api, [{ json: {} }, { json: {} }], s2dMapped(null, { unknownKeys: 'refuse' }, 'autoMapInputData'));
+		const result = await mapColumns(api, [{ json: {} }, { json: {} }], s2dMapped(null, { options: { unknownKeys: 'refuse' } }, 'autoMapInputData'));
 
 		expect(result.errorOf('SourceToDocs')).toBeUndefined();
 		expect(sentRows(api)).toEqual([{}, {}]);
@@ -592,7 +628,7 @@ describe('Unknown Fields: Drop against a Data Set with no listed columns', () =>
 	it('Map Automatically sends the rows untouched and reports nothing dropped', async () => {
 		const api = await startApi(noColumns());
 
-		const result = await mapColumns(api, [{ json: { 'Client name': 'A', id: 'rec1' } }], s2dMapped(null, { unknownKeys: 'drop' }, 'autoMapInputData'));
+		const result = await mapColumns(api, [{ json: { 'Client name': 'A', id: 'rec1' } }], s2dMapped(null, { options: { unknownKeys: 'drop' } }, 'autoMapInputData'));
 
 		expect(api.gets()).toHaveLength(1);
 		expect(sentRows(api)).toEqual([{ 'Client name': 'A', id: 'rec1' }]);
@@ -601,7 +637,7 @@ describe('Unknown Fields: Drop against a Data Set with no listed columns', () =>
 
 	it('a JSON entry is left untouched too', async () => {
 		const api = await startApi(noColumns());
-		const json = s2dJson([{ dataSetId: DS_ID, rows: '[{"a":1}]' }], { unknownKeys: 'drop' });
+		const json = s2dJson([{ dataSetId: DS_ID, rows: '[{"a":1}]' }], { options: { unknownKeys: 'drop' } });
 
 		const result = await mapColumns(api, [{ json: {} }], json);
 
@@ -690,7 +726,7 @@ describe('Map Columns names a split key it leaves unmapped', () => {
 	it('reads the document once when Unknown Fields: Drop reads it too', async () => {
 		const api = await startApi(documentRouter(splitOn(['Client name'])));
 
-		const result = await mapColumns(api, [{ json: { Amount: 1 } }], s2dMapped(null, { unknownKeys: 'drop' }, 'autoMapInputData'));
+		const result = await mapColumns(api, [{ json: { Amount: 1 } }], s2dMapped(null, { options: { unknownKeys: 'drop' } }, 'autoMapInputData'));
 
 		expect(api.gets()).toHaveLength(1);
 		expect(result.json('SourceToDocs')[0].missing_split_keys).toEqual(['Client name']);

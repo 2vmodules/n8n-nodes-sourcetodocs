@@ -29,6 +29,7 @@ import {
 	DS_ID,
 	documentPayload,
 	failure,
+	OPTION_NAMES,
 	ok,
 	readTemplate,
 	runPayload,
@@ -90,7 +91,7 @@ describe('every template file', () => {
 });
 
 describe('the optional fields of every template sit in Options', () => {
-	const names = ['projectId', 'distributionIds', 'waitForCompletion', 'maxWait', 'pollEvery', 'idempotencyKey', 'summaryOnly'];
+	const names = ['projectId', ...OPTION_NAMES];
 
 	it.each(TEMPLATES)('%s keeps none of them at the top level of the SourceToDocs node, and sets the wait under options', (file) => {
 		const s2d = readTemplate(file);

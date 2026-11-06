@@ -82,7 +82,7 @@ const TARGETS: Array<[string, string, (value: string) => TestNode]> = [
 	[
 		'Generate (Data Set, Additional Data Sets)',
 		'Data Set',
-		(value) => s2dMapped({ 'Client name': 'x' }, { additionalDataSets: { values: [{ dataSetId: value, rows: '[]' }] } }),
+		(value) => s2dMapped({ 'Client name': 'x' }, { options: { additionalDataSets: { values: [{ dataSetId: value, rows: '[]' }] } } }),
 	],
 ];
 
@@ -186,7 +186,7 @@ describe('Data Set ids and Rows edge cases', () => {
 	it.each(['refuse', 'drop'])('a __proto__ Data Set id is refused under Unknown Fields %s, not sent as {}', async (unknownKeys) => {
 		const api = await startApi();
 
-		const result = await runWith(api, s2dJson([{ dataSetId: '={{ $json.ds }}', rows: '[{"Sku":"a"}]' }], { unknownKeys }), [
+		const result = await runWith(api, s2dJson([{ dataSetId: '={{ $json.ds }}', rows: '[{"Sku":"a"}]' }], { options: { unknownKeys } }), [
 			{ json: { ds: '__proto__' } },
 		]);
 
@@ -251,9 +251,9 @@ describe('valid ids still work in every mode', () => {
 		const api = await startApi();
 		const distributionIds = [DIST_UUID];
 
-		await runWith(api, s2dJson([{ dataSetId: DS_ID, rows: '[{"Sku":"a"}]' }], { unknownKeys: 'refuse', options: { distributionIds } }), [{ json: {} }]);
-		await runWith(api, s2dMapped({ 'Client name': 'x' }, { additionalDataSets: { values: [{ dataSetId: DS2_ID, rows: '[{"Sku":"b"}]' }] }, unknownKeys: 'refuse', options: { distributionIds } }), [{ json: {} }]);
-		await runWith(api, s2dMapped(null, { unknownKeys: 'refuse', options: { distributionIds } }, 'autoMapInputData'), [{ json: { 'Client name': 'y' } }]);
+		await runWith(api, s2dJson([{ dataSetId: DS_ID, rows: '[{"Sku":"a"}]' }], { options: { unknownKeys: 'refuse', distributionIds } }), [{ json: {} }]);
+		await runWith(api, s2dMapped({ 'Client name': 'x' }, { options: { additionalDataSets: { values: [{ dataSetId: DS2_ID, rows: '[{"Sku":"b"}]' }] }, unknownKeys: 'refuse', distributionIds } }), [{ json: {} }]);
+		await runWith(api, s2dMapped(null, { options: { unknownKeys: 'refuse', distributionIds } }, 'autoMapInputData'), [{ json: { 'Client name': 'y' } }]);
 
 		expect(api.posts().map((p) => bodyOf(p))).toEqual([
 			{ inline_data: { [DS_ID]: [{ Sku: 'a' }] }, distribution_ids: distributionIds },

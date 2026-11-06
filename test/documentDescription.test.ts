@@ -33,9 +33,9 @@ describe('the Options collections', () => {
 
 	it('hold the optional fields, in n8n\'s alphabetical order by display name, with their defaults and type options', () => {
 		const generate = generateOptions()?.options ?? [];
-		expect(generate.map((item) => item.displayName)).toEqual(['Deliver To Names or IDs', 'Idempotency Key', 'Max Wait (Seconds)', 'Poll Every (Seconds)', 'Wait For Completion']);
-		expect(generate.map((item) => item.name)).toEqual(['distributionIds', 'idempotencyKey', 'maxWait', 'pollEvery', 'waitForCompletion']);
-		expect(generate.map((item) => item.default)).toEqual([[], '', 300, 5, true]);
+		expect(generate.map((item) => item.displayName)).toEqual(['Additional Data Sets', 'Deliver To Names or IDs', 'Idempotency Key', 'Max Wait (Seconds)', 'Poll Every (Seconds)', 'Unknown Fields', 'Wait For Completion']);
+		expect(generate.map((item) => item.name)).toEqual(['additionalDataSets', 'distributionIds', 'idempotencyKey', 'maxWait', 'pollEvery', 'unknownKeys', 'waitForCompletion']);
+		expect(generate.map((item) => item.default)).toEqual([{}, [], '', 300, 5, 'drop', true]);
 		expect(generateItem('distributionIds')?.typeOptions).toEqual({ loadOptionsMethod: 'getDistributions', loadOptionsDependsOn: ['documentId.value'] });
 		expect(generateItem('maxWait')?.typeOptions).toEqual({ minValue: 1 });
 		expect(generateItem('pollEvery')?.typeOptions).toEqual({ minValue: 2 });
@@ -66,10 +66,17 @@ describe('the Options collections', () => {
 		expect(getItem('summaryOnly')?.displayOptions).toBeUndefined();
 	});
 
-	it('none of the seven names is a top-level property of Generate or Run → Get', () => {
-		for (const name of ['distributionIds', 'waitForCompletion', 'maxWait', 'pollEvery', 'idempotencyKey', 'summaryOnly']) {
+	it('none of the names inside an Options collection is a top-level property of Generate or Run → Get', () => {
+		const names = [...(generateOptions()?.options ?? []), ...(getOptions()?.options ?? [])].map((item) => item.name);
+		expect(names.length).toBeGreaterThan(8);
+		for (const name of names) {
 			expect([...documentFields, ...runFields].filter((f) => f.name === name), name).toEqual([]);
 		}
+	});
+
+	it('Unknown Fields reads the node\'s Rows Come From (JSON and Map Columns), Additional Data Sets only the Map Columns one', () => {
+		expect(generateItem('unknownKeys')?.displayOptions).toEqual({ show: { '/rowsFrom': ['workflow', 'mapped'] } });
+		expect(generateItem('additionalDataSets')?.displayOptions).toEqual({ show: { '/rowsFrom': ['mapped'] } });
 	});
 });
 
@@ -92,23 +99,25 @@ describe('documentFields — Deliver To description', () => {
 
 describe('documentFields — Unknown Fields', () => {
 	it('defaults to Drop', () => {
-		const field = documentFields.find((f) => f.name === 'unknownKeys');
+		const field = generateItem('unknownKeys');
 
 		expect(field).toBeDefined();
 		expect(field?.default).toBe('drop');
 	});
 
 	it('offers exactly Drop and Refuse', () => {
-		const field = documentFields.find((f) => f.name === 'unknownKeys');
-		const values = (field?.options as Array<{ value: string }>).map((option) => option.value);
+		const field = generateItem('unknownKeys');
+		const values = ((field as { options?: Array<{ value: string }> } | undefined)?.options ?? []).map((option) => option.value);
 
 		expect(values).toEqual(['drop', 'refuse']);
 	});
 
-	it('only shows for rows from this workflow', () => {
-		const field = documentFields.find((f) => f.name === 'unknownKeys');
+	it('is one item of Options, with one description and no hint', () => {
+		expect(documentFields.filter((f) => f.name === 'unknownKeys')).toEqual([]);
+		const field = generateItem('unknownKeys');
 
-		expect(field?.displayOptions?.show?.rowsFrom).toEqual(['workflow']);
+		expect(field?.hint).toBeUndefined();
+		expect((field?.description ?? '').split(/(?<=\.)\s/)).toHaveLength(2);
 	});
 });
 
@@ -152,10 +161,9 @@ describe('copy per n8n\'s UX guidelines', () => {
 	const all = [...documentFields, ...runFields, ...projectFields];
 
 	it('labels Unknown Fields, and keeps the parameter name saved workflows hold', () => {
-		const fields = documentFields.filter((field) => field.name === 'unknownKeys');
+		const fields = (generateOptions()?.options ?? []).filter((field) => field.name === 'unknownKeys');
 
-		expect(fields).toHaveLength(2);
-		expect(fields.map((field) => field.displayName)).toEqual(['Unknown Fields', 'Unknown Fields']);
+		expect(fields.map((field) => field.displayName)).toEqual(['Unknown Fields']);
 		expect(all.some((field) => field.displayName === 'Unknown Keys')).toBe(false);
 	});
 

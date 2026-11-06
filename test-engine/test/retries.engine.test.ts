@@ -571,9 +571,9 @@ describe.concurrent('The AI tool variant, invoked in process', () => {
 		...s2d(
 			{
 				rowsFrom: 'workflow',
-				unknownKeys: 'refuse',
 				dataSets: { values: [{ dataSetId: DS_ID, rows: `={{ JSON.stringify([{ 'Client name': $fromAI('client') }]) }}` }] },
 				...parameters,
+				options: { unknownKeys: 'refuse', ...(parameters.options as INodeParameters | undefined) },
 			},
 			{ ...extra, id: 'node-1' },
 		),

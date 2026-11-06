@@ -12,7 +12,7 @@ All three set the workflow's execution order to `v1` (n8n's default for a workfl
 editor), pin the SourceToDocs node at version 1.1 with **Output** on **Simplified**, and carry a
 "Setup" sticky note that lists what to pick after import.
 
-All three leave **Unknown Fields** on its default, **Drop**: Airtable's own `id`/`createdTime` and
+All three leave **Options → Unknown Fields** on its default, **Drop**: Airtable's own `id`/`createdTime` and
 the Form Trigger's own `submittedAt`/`formMode` land on every item those nodes produce, on top of
 whatever columns you picked, and the node removes anything that is not one of the Data Set's own
 columns before sending — reporting what it removed as `dropped_keys` on the output, so a genuine

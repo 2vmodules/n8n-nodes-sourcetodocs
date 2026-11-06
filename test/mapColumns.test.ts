@@ -42,15 +42,13 @@ describe('Rows Come From', () => {
 		expect(names.mapped).toMatch(/Map Columns/);
 	});
 
-	it('shows Data Set, Columns, Additional Data Sets and Unknown Fields in Map Columns mode only', () => {
-		for (const name of ['mappedDataSetId', 'columns', 'additionalDataSets']) {
+	it('shows Data Set and Columns in Map Columns mode only', () => {
+		for (const name of ['mappedDataSetId', 'columns']) {
 			const field = documentFields.find((candidate) => candidate.name === name);
 			expect(field?.displayOptions?.show?.rowsFrom).toEqual(['mapped']);
 		}
-		const unknownKeys = documentFields.filter((field) => field.name === 'unknownKeys');
-		expect(unknownKeys.map((field) => field.displayOptions?.show?.rowsFrom)).toEqual([
-			['workflow'],
-			['mapped'],
-		]);
+		for (const name of ['unknownKeys', 'additionalDataSets']) {
+			expect(documentFields.filter((field) => field.name === name)).toEqual([]);
+		}
 	});
 });

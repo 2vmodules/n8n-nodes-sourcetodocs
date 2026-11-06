@@ -108,7 +108,7 @@ template end to end: a CRM's rows become a document, with no mapping step.
 
    Pick a **Data Set** for that entry — its own dropdown description lists the Data Set's
    column names, which is exactly what each row's fields must spell, case included.
-5. Leave **Unknown Fields** on **Drop** (the default). Most upstream nodes add their own fields to
+5. Leave **Options → Unknown Fields** on **Drop** (the default). Most upstream nodes add their own fields to
    every item they produce on top of the ones you actually picked — an Airtable read carries
    `id`/`createdTime`, an n8n Form Trigger submission carries `submittedAt`/`formMode` — so the
    node removes anything that is not one of the Data Set's own columns before sending, and
@@ -154,16 +154,16 @@ The node's parameters, in order, for reference. Options is last and holds the op
 | → Rows | json | `{{ $input.all().map(i => i.json) }}` on the first entry | an array of row objects; a run takes a request body of up to 2 MiB (about 15 000 ordinary rows) and up to the plan's row limit per Data Set, see [Limits](#limits) |
 | Data Set (Map Columns) | options | — | shown for `mapped` only; the one Data Set whose columns are mapped |
 | Columns | resource mapper | Map Each Column Manually | shown for `mapped` only; see [below](#map-columns-instead-of-writing-json) |
-| Additional Data Sets | collection | empty | shown for `mapped` only; JSON rows for other Data Sets |
-| Unknown Fields | options | `Drop` | shown for `workflow` and `mapped`; `drop` or `refuse` |
 | Output | options | `Simplified` | node version 1.1 and later: `Simplified`, `Raw` or `Selected Fields` |
 | Fields | multi-select | `run_id`, `status`, `file_url` | shown for `Selected Fields` only; `run_id` (and `batch_run_id` on a batch's files) is always kept, so a timed-out item can still be polled |
 | Simplify | boolean | `true` | node version 1 only; off keeps the full run object under `run` |
 | Options | collection | empty | the optional fields below; each is added with **Add Option** and, left out, keeps its default |
+| → Additional Data Sets | collection | empty | shown for `mapped` only; JSON rows for other Data Sets |
 | → Deliver To | multi-select | none | the Document's enabled Distributions; one that was deleted or disabled is ignored by the API, the others still get the file |
 | → Idempotency Key | string | empty | empty: the node sends its own key; see [Retry On Fail](#retry-on-fail). An expression may give text or a number (a number is used as its text); one that gives nothing, or anything else, stops the node before it sends anything |
 | → Max Wait | number (s) | `300`, at least Poll Every, at most `3600` | hidden while Wait For Completion is off |
 | → Poll Every | number (s) | `5`, at least `2`, at most `3600` | hidden while Wait For Completion is off |
+| → Unknown Fields | options | `Drop` | shown for `workflow` and `mapped`; `drop` or `refuse` |
 | → Wait For Completion | boolean | `true` | |
 
 
@@ -209,7 +209,7 @@ With Map Columns:
 3. Choose how to map, with the mapper's own switch:
    - **Map Each Column Manually** — drag or type a value into each shown column. Exactly those
      values are sent: one row per input item, each item's expressions read against that item.
-     Unknown Fields does not apply to these rows. If no input item carries any mapped value the node
+     Options → Unknown Fields does not apply to these rows. If no input item carries any mapped value the node
      stops before sending anything. The error names the shown columns whose expressions resolved
      to nothing and suggests a Split Out node (or `.map(...)` for a list field) first; picking
      another Document or Data Set resets the mapping, so map the columns again (or use Map
@@ -217,7 +217,7 @@ With Map Columns:
    - **Execute Once** on the SourceToDocs node: Map Columns then sends only the first item's row
      (JSON mode's `$input.all()` still sees every item). The node adds a hint to the output
      panel saying so; for several rows use Rows Come From: This Workflow — JSON.
-   - **Map Automatically** — every input item's own fields are sent as its row. **Unknown Fields**
+   - **Map Automatically** — every input item's own fields are sent as its row. **Options → Unknown Fields**
      then works exactly as in JSON mode: **Drop** (the default) removes fields that are not the
      Data Set's columns — an Airtable `id`/`createdTime`, a Form's `submittedAt` — and reports
      them as `dropped_keys`; **Refuse** sends them and the API's `422 inline_column_unknown` names every unknown key (up to 20).
@@ -227,7 +227,7 @@ With Map Columns:
      `file_count` 0 and no error. Where the API can name the key columns (see below) the node
      reads the Document and, when every item leaves a key column empty, still sends the run but
      adds `missing_split_keys: [<column>, …]` to the output item and a hint.
-4. Rows for **other** Data Sets go in **Additional Data Sets**, the same collection as Data Sets
+4. Rows for **other** Data Sets go in **Options → Additional Data Sets**, the same shape as Data Sets
    in JSON mode (Rows is a JSON array, often `{{ $('Other node').all().map(i => i.json) }}`). The
    Data Set you mapped may not also be listed there: the node refuses that before sending anything.
 
@@ -327,7 +327,7 @@ your own data carries, not by n8n:
      `{{ $('Get invoice lines').all().map(i => i.json) }}`. Every row needs the customer key
      column from step 1; a line with none, or with a value that matches no customer, never
      reaches that customer's file.
-   - Leave **Unknown Fields** on **Drop**: both Airtable reads carry `id`/`createdTime` on every
+   - Leave **Options → Unknown Fields** on **Drop**: both Airtable reads carry `id`/`createdTime` on every
      record, and neither table's own columns include them.
    - **Deliver To** does not apply to a split Document: the node's own dropdown shows a notice
      instead of a choice, because a split run delivers through the Document's own

@@ -62,8 +62,6 @@
 					"attemptToConvertTypes": false,
 					"convertFieldsToString": false
 				},
-				"additionalDataSets": {},
-				"unknownKeys": "drop",
 				"options": {
 					"waitForCompletion": true,
 					"maxWait": 300,

@@ -62,7 +62,7 @@ describe('The credential and the connection', () => {
 });
 
 describe('Items reaching the node', () => {
-	const rowsFromItems = () => s2dJson([{ dataSetId: DS_ID, rows: '={{ $input.all().map(i => i.json) }}' }], { unknownKeys: 'refuse' });
+	const rowsFromItems = () => s2dJson([{ dataSetId: DS_ID, rows: '={{ $input.all().map(i => i.json) }}' }], { options: { unknownKeys: 'refuse' } });
 
 	it('zero input items: the node does not run, and nothing is sent', async () => {
 		const api = await startApi();

@@ -20,6 +20,10 @@ All notable changes to `@twovmodules/n8n-nodes-sourcetodocs` are recorded here. 
   **Project** filter: From List shows every document as `Project / Document` and searches both
   names. A workflow that had a Project set simply loses it, with no other effect. Document → Get
   Many still takes a Project.
+- **Unknown Fields and Additional Data Sets are under Options too.** **Unknown Fields** (JSON and Map
+  Columns rows) and **Additional Data Sets** (Map Columns) moved into Generate's **Options**, with
+  their old behaviour and the same defaults. A workflow saved with 1.0.0 that set **Unknown Fields** to
+  Refuse goes back to Drop, and its Additional Data Sets are lost; set them again under Options.
 
 ## [1.0.0] - 2026-10-13
 

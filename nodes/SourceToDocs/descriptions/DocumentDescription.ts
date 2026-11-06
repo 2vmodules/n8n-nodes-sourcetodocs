@@ -245,7 +245,7 @@ export const documentFields: INodeProperties[] = [
 			},
 		},
 		description:
-			"One row is sent per incoming item. The columns the data set selects in SourceToDocs are shown; any other column of its table can be added from the list. 'Map Each Column Manually' sends exactly the values you map; 'Map Automatically' sends each item's own fields, and 'Unknown Fields' below decides what happens to a field that is not a column.",
+			"One row is sent per incoming item. The columns the data set selects in SourceToDocs are shown; any other column of its table can be added from the list. 'Map Each Column Manually' sends exactly the values you map; 'Map Automatically' sends each item's own fields, and 'Unknown Fields' under Options decides what happens to a field that is not a column.",
 		typeOptions: {
 			loadOptionsDependsOn: ['documentId.value', 'mappedDataSetId'],
 			resourceMapper: {
@@ -261,94 +261,6 @@ export const documentFields: INodeProperties[] = [
 				multiKeyMatch: false,
 			},
 		},
-	},
-	{
-		displayName: 'Additional Data Sets',
-		name: 'additionalDataSets',
-		type: 'fixedCollection',
-		typeOptions: {
-			multipleValues: true,
-		},
-		placeholder: 'Add Data Set',
-		default: {},
-		displayOptions: {
-			show: {
-				resource: ['document'],
-				operation: ['generate'],
-				rowsFrom: ['mapped'],
-			},
-		},
-		description:
-			'Rows for other data sets of the document, as JSON — for rows that come from another node or from an array inside an item. The data set mapped above may not appear here. Each data set may appear once; a data set left out is still read from its connected source.',
-		options: [
-			{
-				displayName: 'Data Set',
-				name: 'values',
-				values: dataSetEntryFields,
-			},
-		],
-	},
-	{
-		displayName: 'Unknown Fields',
-		name: 'unknownKeys',
-		type: 'options',
-		noDataExpression: true,
-		options: [
-			{
-				name: 'Drop',
-				value: 'drop',
-				description:
-					"Remove, from every row, any field that is not one of that row's Data Set's own columns, and report the removed field names on the output as dropped_keys. A misspelled field is still visible — the run still starts.",
-			},
-			{
-				name: 'Refuse',
-				value: 'refuse',
-				description:
-					"Send every row exactly as given. A field that is not one of the Data Set's own columns is refused by the API, naming it.",
-			},
-		],
-		default: 'drop',
-		displayOptions: {
-			show: {
-				resource: ['document'],
-				operation: ['generate'],
-				rowsFrom: ['workflow'],
-			},
-		},
-		description:
-			"What to do with a row field that is not one of its Data Set's own columns. Most sources add their own fields to every item they produce — an Airtable read carries ID and createdTime, an n8n Form submission carries submittedAt and formMode — on top of the ones you actually picked, so 'Drop' is on by default. Pick 'Refuse' to see the API's own refusal instead of having fields silently removed.",
-		hint: "Most sources add their own fields to every item (Airtable's ID/createdTime, the Form Trigger's submittedAt/formMode). 'Drop' removes anything that is not a column, 'Refuse' sends rows as given",
-	},
-	{
-		displayName: 'Unknown Fields',
-		name: 'unknownKeys',
-		type: 'options',
-		noDataExpression: true,
-		options: [
-			{
-				name: 'Drop',
-				value: 'drop',
-				description:
-					"Remove, from every row, any field that is not one of that row's Data Set's own columns, and report the removed field names on the output as dropped_keys",
-			},
-			{
-				name: 'Refuse',
-				value: 'refuse',
-				description:
-					"Send every row exactly as given. A field that is not one of the Data Set's own columns is refused by the API, naming it.",
-			},
-		],
-		default: 'drop',
-		displayOptions: {
-			show: {
-				resource: ['document'],
-				operation: ['generate'],
-				rowsFrom: ['mapped'],
-			},
-		},
-		description:
-			"What to do with a row field that is not one of its Data Set's own columns. It applies when the columns above are set to Map Automatically — an Airtable read carries ID and createdTime, an n8n Form submission carries submittedAt and formMode, on top of the fields you care about — and to the rows of Additional Data Sets. Map Each Column Manually sends only the columns you mapped, so there is nothing for it to remove there.",
-		hint: 'Only applies to Map Automatically and to Additional Data Sets',
 	},
 	{
 		displayName: 'Simplify',
@@ -378,6 +290,30 @@ export const documentFields: INodeProperties[] = [
 			},
 		},
 		options: [
+			{
+				displayName: 'Additional Data Sets',
+				name: 'additionalDataSets',
+				type: 'fixedCollection',
+				typeOptions: {
+					multipleValues: true,
+				},
+				placeholder: 'Add Data Set',
+				default: {},
+				displayOptions: {
+					show: {
+						'/rowsFrom': ['mapped'],
+					},
+				},
+				description:
+					'Rows for other data sets of the document, as JSON — for rows that come from another node or from an array inside an item. The data set mapped above may not appear here. Each data set may appear once; a data set left out is still read from its connected source.',
+				options: [
+					{
+						displayName: 'Data Set',
+						name: 'values',
+						values: dataSetEntryFields,
+					},
+				],
+			},
 			{
 				displayName: 'Deliver To Names or IDs',
 				name: 'distributionIds',
@@ -430,6 +366,34 @@ export const documentFields: INodeProperties[] = [
 				},
 				description:
 					"How often to check the run while waiting. 12 polls a minute sits well under the 60-requests-a-minute token limit. 'Poll Every (Seconds)' is at least 2 s; both it and 'Max Wait (Seconds)' are capped at 3600 s, and 'Max Wait (Seconds)' is at least 'Poll Every (Seconds)'.",
+			},
+			{
+				displayName: 'Unknown Fields',
+				name: 'unknownKeys',
+				type: 'options',
+				noDataExpression: true,
+				options: [
+					{
+						name: 'Drop',
+						value: 'drop',
+						description:
+							"Remove, from every row, any field that is not one of that row's Data Set's own columns, and report the removed field names on the output as dropped_keys",
+					},
+					{
+						name: 'Refuse',
+						value: 'refuse',
+						description:
+							"Send every row exactly as given. A field that is not one of the Data Set's own columns is refused by the API, naming it.",
+					},
+				],
+				default: 'drop',
+				displayOptions: {
+					show: {
+						'/rowsFrom': ['workflow', 'mapped'],
+					},
+				},
+				description:
+					"What to do with a row field that is not one of its Data Set's own columns, such as the ID and createdTime an Airtable read adds. In Map Columns it applies to Map Automatically and to Additional Data Sets; Map Each Column Manually sends only the columns you mapped.",
 			},
 			{
 				displayName: 'Wait For Completion',

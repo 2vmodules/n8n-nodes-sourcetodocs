@@ -78,7 +78,7 @@ describe('Generate sends one request per execution', () => {
 				{ dataSetId: DS_ID, rows: rows([{ Name: 'Acme' }, { Name: 'Globex' }]) },
 				{ dataSetId: DS2_ID, rows: rows([{ Line: 1 }]) },
 			],
-			{ unknownKeys: 'refuse' },
+			{ options: { unknownKeys: 'refuse' } },
 		);
 
 		await generate(api, node);
@@ -91,7 +91,7 @@ describe('Generate sends one request per execution', () => {
 	it('sends rows an expression resolved to an array, from the input items', async () => {
 		const api = await startApi();
 		const node = s2dJson([{ dataSetId: DS_ID, rows: '={{ $input.all().map(i => i.json) }}' }], {
-			unknownKeys: 'refuse',
+			options: { unknownKeys: 'refuse' },
 		});
 
 		await generate(api, node, [{ json: { Name: 'A' } }, { json: { Name: 'B' } }, { json: { Name: 'C' } }]);
@@ -319,7 +319,7 @@ describe('Generate, Unknown Fields', () => {
 	it('Refuse sends rows exactly as given and never reads the document', async () => {
 		const api = await startApi();
 		const node = s2dJson([{ dataSetId: DS_ID, rows: rows([{ id: 'rec1', 'Client name': 'Acme' }]) }], {
-			unknownKeys: 'refuse',
+			options: { unknownKeys: 'refuse' },
 		});
 
 		const result = await generate(api, node);

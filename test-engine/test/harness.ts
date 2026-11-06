@@ -612,12 +612,21 @@ function makeAdditionalData(
 }
 
 /**
- * The optional fields of Document → Generate and Run → Get live in the `options` collection. n8n's
+ * The optional fields of Document → Generate and Run → Get (Unknown Fields and Additional Data Sets among them) live in the `options` collection. n8n's
  * `Workflow` constructor drops a top-level key that no longer matches a property, without an
  * error, so a test that still sets one at the top level would run on the defaults and prove
  * nothing. Refuse it loudly instead.
  */
-export const OPTION_NAMES = ['distributionIds', 'waitForCompletion', 'maxWait', 'pollEvery', 'idempotencyKey', 'summaryOnly'] as const;
+export const OPTION_NAMES = [
+	'additionalDataSets',
+	'distributionIds',
+	'idempotencyKey',
+	'maxWait',
+	'pollEvery',
+	'summaryOnly',
+	'unknownKeys',
+	'waitForCompletion',
+] as const;
 
 export function assertOptionsMigrated(node: { name?: string; type: string; parameters: object }): void {
 	if (!node.type.startsWith(S2D_TYPE)) return;

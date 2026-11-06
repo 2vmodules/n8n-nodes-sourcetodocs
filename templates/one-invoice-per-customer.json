@@ -73,7 +73,6 @@
 						}
 					]
 				},
-				"unknownKeys": "drop",
 				"options": {
 					"waitForCompletion": true,
 					"maxWait": 300,

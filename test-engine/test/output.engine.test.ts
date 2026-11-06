@@ -8,6 +8,7 @@ import type { INodeParameters } from 'n8n-workflow';
 
 import {
 	API_PATH,
+	OPTION_NAMES,
 	emit,
 	documentRouter,
 	failure,
@@ -78,7 +79,6 @@ function storedParameters(typeVersion: number, parameters: INodeParameters): INo
 const doc = { __rl: true, mode: 'id', value: 'x' };
 
 describe('both versions keep their other parameters, and the optional fields live in Options', () => {
-	const optionNames = ['distributionIds', 'waitForCompletion', 'maxWait', 'pollEvery', 'idempotencyKey', 'summaryOnly'];
 
 	it.each([
 		[
@@ -121,8 +121,9 @@ describe('both versions keep their other parameters, and the optional fields liv
 		const stored = storedParameters(version, {
 			resource: 'document', operation: 'generate', documentId: doc, rowsFrom: 'connected',
 			distributionIds: ['x'], waitForCompletion: false, maxWait: 9, pollEvery: 9, idempotencyKey: 'k',
+			unknownKeys: 'refuse', additionalDataSets: { values: [] },
 		});
-		for (const name of optionNames) expect(stored).not.toHaveProperty(name);
+		for (const name of OPTION_NAMES) expect(stored).not.toHaveProperty(name);
 		expect(stored.options).toEqual({});
 		expect(storedParameters(version, { resource: 'run', operation: 'get', runId: 'r', summaryOnly: true, maxWait: 9 })).not.toHaveProperty('summaryOnly');
 	});
@@ -150,6 +151,13 @@ describe('both versions keep their other parameters, and the optional fields liv
 				s2dDescription,
 			);
 		};
+
+		it.each([1, 1.1])('version %s Generate: Unknown Fields is offered for JSON and Map Columns rows and not for Connected; Additional Data Sets only for Map Columns', (version) => {
+			for (const [rowsFrom, unknownKeys, additional] of [['connected', false, false], ['workflow', true, false], ['mapped', true, true]] as const) {
+				expect(shown(version, 'document', 'generate', { documentId: doc, rowsFrom }, 'unknownKeys'), `${rowsFrom} unknownKeys`).toBe(unknownKeys);
+				expect(shown(version, 'document', 'generate', { documentId: doc, rowsFrom }, 'additionalDataSets'), `${rowsFrom} additionalDataSets`).toBe(additional);
+			}
+		});
 
 		it.each([1, 1.1])('version %s Generate: Max Wait and Poll Every show when Wait For Completion was never added or is on, and hide when it is off', (version) => {
 			for (const item of ['maxWait', 'pollEvery']) {
