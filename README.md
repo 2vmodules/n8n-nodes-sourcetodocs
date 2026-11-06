@@ -651,6 +651,8 @@ Whatever you hand to the model with n8n's "let the model define this parameter" 
 
 ## Version history
 
+- **2.0.1** — the nodes panel finds the node by its name, **SourceToDocs** or **Source to Docs**,
+  and no longer by generic terms such as "invoice" or "Google Slides". Nothing else changes.
 - **2.0.0** — Generate's optional fields (Deliver to, Wait for Completion, Max Wait, Poll Every,
   Idempotency Key, Unknown Fields, Additional Data Sets) and Run → Get's (Summary Only, Max Wait)
   moved into an **Options** collection, in both node versions. A node saved with 1.0.0 loses the

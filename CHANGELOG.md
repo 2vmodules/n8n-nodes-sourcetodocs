@@ -4,6 +4,16 @@ All notable changes to `@twovmodules/n8n-nodes-sourcetodocs` are recorded here. 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [2.0.1] - 2026-11-06
+
+### Changed
+
+- **The nodes panel finds the node by its own name only.** The codex search aliases were "Invoice",
+  "Report", "PDF", "Google Slides", "Google Docs", "Presentation", "Document generation",
+  "Template" and "Mail merge"; the only alias now is "Source to Docs". Searching for **SourceToDocs**
+  or **Source to Docs** finds the node; what it does and the services it works with stay in the
+  node's description and this README. The node itself is unchanged.
+
 ## [2.0.0] - 2026-11-06
 
 ### Changed

@@ -1,6 +1,6 @@
 {
 	"name": "@twovmodules/n8n-nodes-sourcetodocs",
-	"version": "2.0.0",
+	"version": "2.0.1",
 	"description": "n8n community node for SourceToDocs: generate Google Slides, Google Docs and PDF documents from the rows in your workflow, and read your projects, documents and runs through the SourceToDocs Public API",
 	"license": "MIT",
 	"homepage": "https://sourcetodocs.com",

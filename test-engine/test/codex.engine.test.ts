@@ -22,8 +22,6 @@ describe('the codex n8n loads', () => {
 		const entry = (loader.types.nodes as Array<{ name: string; codex?: unknown }>).find((node) => node.name === 'sourceToDocs');
 		const codex = entry?.codex as { alias?: string[]; categories?: string[] } | undefined;
 		expect(codex?.categories).toEqual(['Productivity', 'Sales']);
-		expect(codex?.alias).toEqual(
-			expect.arrayContaining(['Invoice', 'Report', 'PDF', 'Google Slides', 'Google Docs', 'Presentation', 'Document generation', 'Template', 'Mail merge']),
-		);
+		expect(codex?.alias).toEqual(['Source to Docs']);
 	});
 });

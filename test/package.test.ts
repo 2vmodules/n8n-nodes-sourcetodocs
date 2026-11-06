@@ -1,6 +1,6 @@
 /**
  * What a verifier and a person searching for the node read first: the package metadata, the codex
- * file's search aliases, the README's shape and the CHANGELOG's first release. The codex as n8n's
+ * file's search alias, the README's shape and the CHANGELOG's first release. The codex as n8n's
  * own loader reads it is in test-engine/test/codex.engine.test.ts.
  */
 /* eslint-disable @n8n/community-nodes/no-restricted-imports, @n8n/community-nodes/no-restricted-globals -- a test reads the repo's files; it is not shipped */
@@ -27,10 +27,9 @@ describe('package metadata', () => {
 		);
 	});
 
-	it('gives the codex the aliases people search the nodes panel for', () => {
-		expect(codex.alias?.map((alias) => alias.toLowerCase())).toEqual(
-			expect.arrayContaining(['invoice', 'report', 'pdf', 'google slides', 'google docs', 'presentation', 'document generation', 'template', 'mail merge']),
-		);
+	it("gives the codex no alias but SourceToDocs' own name, so other searches in the nodes panel do not find it", () => {
+		expect(codex.alias?.length).toBeGreaterThan(0);
+		for (const alias of codex.alias ?? []) expect(alias.replace(/\s+/g, '').toLowerCase()).toBe('sourcetodocs');
 	});
 });
 
