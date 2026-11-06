@@ -112,7 +112,7 @@ describe('hostile ids are refused before any request', () => {
 
 	it('refuses each Deliver To id that is not an ID, naming Deliver To, and sends nothing', async () => {
 		const api = await startApi();
-		const node = s2d({ rowsFrom: 'connected', distributionIds: '={{ $json.ids }}' });
+		const node = s2d({ rowsFrom: 'connected', options: { distributionIds: '={{ $json.ids }}' } });
 
 		const result = await runWith(api, node, [{ json: { ids: [DIST_UUID, '../../projects#'] } }]);
 
@@ -124,7 +124,7 @@ describe('hostile ids are refused before any request', () => {
 
 	it('refuses a Deliver To that is not a list', async () => {
 		const api = await startApi();
-		const node = s2d({ rowsFrom: 'connected', distributionIds: '={{ $json.ids }}' });
+		const node = s2d({ rowsFrom: 'connected', options: { distributionIds: '={{ $json.ids }}' } });
 
 		const result = await runWith(api, node, [{ json: { ids: DIST_UUID } }]);
 
@@ -251,9 +251,9 @@ describe('valid ids still work in every mode', () => {
 		const api = await startApi();
 		const distributionIds = [DIST_UUID];
 
-		await runWith(api, s2dJson([{ dataSetId: DS_ID, rows: '[{"Sku":"a"}]' }], { unknownKeys: 'refuse', distributionIds }), [{ json: {} }]);
-		await runWith(api, s2dMapped({ 'Client name': 'x' }, { additionalDataSets: { values: [{ dataSetId: DS2_ID, rows: '[{"Sku":"b"}]' }] }, unknownKeys: 'refuse', distributionIds }), [{ json: {} }]);
-		await runWith(api, s2dMapped(null, { unknownKeys: 'refuse', distributionIds }, 'autoMapInputData'), [{ json: { 'Client name': 'y' } }]);
+		await runWith(api, s2dJson([{ dataSetId: DS_ID, rows: '[{"Sku":"a"}]' }], { unknownKeys: 'refuse', options: { distributionIds } }), [{ json: {} }]);
+		await runWith(api, s2dMapped({ 'Client name': 'x' }, { additionalDataSets: { values: [{ dataSetId: DS2_ID, rows: '[{"Sku":"b"}]' }] }, unknownKeys: 'refuse', options: { distributionIds } }), [{ json: {} }]);
+		await runWith(api, s2dMapped(null, { unknownKeys: 'refuse', options: { distributionIds } }, 'autoMapInputData'), [{ json: { 'Client name': 'y' } }]);
 
 		expect(api.posts().map((p) => bodyOf(p))).toEqual([
 			{ inline_data: { [DS_ID]: [{ Sku: 'a' }] }, distribution_ids: distributionIds },
@@ -307,7 +307,7 @@ describe('an id the API itself returns is encoded before it goes back into a pat
 			return failure(404, 'not_found', 'Resource not found.');
 		});
 
-		const result = await runWith(api, s2d({ rowsFrom: 'connected', waitForCompletion: true }), [{ json: {} }]);
+		const result = await runWith(api, s2d({ rowsFrom: 'connected', options: { waitForCompletion: true } }), [{ json: {} }]);
 
 		expect(result.errorOf('SourceToDocs')).toBeUndefined();
 		expect(api.requests.map((r) => r.path)).toEqual([`${API_PATH}/documents/${DOC_ID}/runs`, `${API_PATH}/runs/a%2Fb%3Fc%23d/children`]);

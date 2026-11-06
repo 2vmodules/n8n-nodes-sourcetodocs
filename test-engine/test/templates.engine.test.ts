@@ -89,6 +89,17 @@ describe('every template file', () => {
 	);
 });
 
+describe('the optional fields of every template sit in Options', () => {
+	const names = ['distributionIds', 'waitForCompletion', 'maxWait', 'pollEvery', 'idempotencyKey', 'summaryOnly'];
+
+	it.each(TEMPLATES)('%s keeps none of them at the top level of the SourceToDocs node, and sets the wait under options', (file) => {
+		const s2d = readTemplate(file);
+		const node = s2d.nodes.find((n) => n.type === '@twovmodules/n8n-nodes-sourcetodocs.sourceToDocs');
+		for (const name of names) expect(node?.parameters).not.toHaveProperty(name);
+		expect(node?.parameters.options).toEqual({ waitForCompletion: true, maxWait: 300, pollEvery: 5 });
+	});
+});
+
 describe('no template ships a fixed webhookId', () => {
 	it.each(TEMPLATES)('%s has none, so n8n assigns fresh ones on import', (file) => {
 		const template = readTemplate(file);
@@ -139,8 +150,7 @@ describe('weekly-report-from-crm-deals.json, a report that did not finish', () =
 	const pick = (params: Record<string, unknown>) => ({
 		...params,
 		documentId: documentLocator,
-		maxWait: 2,
-		pollEvery: 2,
+		options: { ...(params.options as object), maxWait: 2, pollEvery: 2 },
 		dataSets: { values: [{ dataSetId: DS_ID, rows: (params.dataSets as { values: Array<{ rows: string }> }).values[0].rows }] },
 	});
 	const route = (run: ReturnType<typeof runPayload>): Router => (request) =>
@@ -255,7 +265,7 @@ describe('generate-on-form-submission.json', () => {
 		const result = await runTemplate('generate-on-form-submission.json', {
 			baseUrl: api.baseUrl,
 			fixtures: { 'On form submission': [{ json: { 'Client name': 'Acme', Amount: 1200 } }] },
-			pick: (params) => ({ ...params, documentId: documentLocator, mappedDataSetId: DS_ID, maxWait: 2, pollEvery: 2 }),
+			pick: (params) => ({ ...params, documentId: documentLocator, mappedDataSetId: DS_ID, options: { ...(params.options as object), maxWait: 2, pollEvery: 2 } }),
 		});
 
 		expect(result.run.status).toBe('success');
@@ -401,8 +411,7 @@ describe('one-invoice-per-customer.json', () => {
 		return {
 			...params,
 			documentId: documentLocator,
-			maxWait: 2,
-			pollEvery: 2,
+			options: { ...(params.options as object), maxWait: 2, pollEvery: 2 },
 			dataSets: { values: [{ dataSetId: DS_ID, rows: entries[0].rows }, { dataSetId: DS2_ID, rows: entries[1].rows }] },
 		};
 	};

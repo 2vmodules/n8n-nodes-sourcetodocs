@@ -103,21 +103,21 @@ describe('Generate sends one request per execution', () => {
 
 	it('sends distribution_ids only when at least one is picked', async () => {
 		const withOne = await startApi();
-		await generate(withOne, s2dConnected({ distributionIds: ['d0000000-0000-4000-8000-000000000001'] }));
+		await generate(withOne, s2dConnected({ options: { distributionIds: ['d0000000-0000-4000-8000-000000000001'] } }));
 		expect(bodyOf(withOne.posts()[0])).toEqual({ distribution_ids: ['d0000000-0000-4000-8000-000000000001'] });
 
 		const withNone = await startApi();
-		await generate(withNone, s2dConnected({ distributionIds: [] }));
+		await generate(withNone, s2dConnected({ options: { distributionIds: [] } }));
 		expect(bodyOf(withNone.posts()[0])).toBeUndefined();
 	});
 
 	it('sends a key the person set trimmed and unchanged, and its own key when it is blank', async () => {
 		const api = await startApi();
-		await generate(api, s2dConnected({ idempotencyKey: '  retry-1  ' }));
+		await generate(api, s2dConnected({ options: { idempotencyKey: '  retry-1  ' } }));
 		expect(api.posts()[0].body).toEqual({ idempotency_key: 'retry-1' });
 
 		const blank = await startApi();
-		await generate(blank, s2dConnected({ idempotencyKey: '   ' }));
+		await generate(blank, s2dConnected({ options: { idempotencyKey: '   ' } }));
 		expect(bodyOf(blank.posts()[0])).toBeUndefined();
 		expect((blank.posts()[0].body as { idempotency_key: string }).idempotency_key).toMatch(/^n8n:/);
 	});
@@ -158,7 +158,7 @@ describe('Generate with waiting off', () => {
 });
 
 describe('Generate waiting on, for a run that is already terminal at the 201', () => {
-	const waiting = { waitForCompletion: true, maxWait: 300, pollEvery: 5 };
+	const waiting = { options: { waitForCompletion: true, maxWait: 300, pollEvery: 5 } };
 
 	it('an ordinary run that succeeded is one item with file_url at the top level', async () => {
 		const api = await startApi(
@@ -365,7 +365,7 @@ describe('Generate, pairing and Simplify', () => {
 
 		const result = await generate(
 			api,
-			s2dConnected({ waitForCompletion: true, maxWait: 300, pollEvery: 5 }),
+			s2dConnected({ options: { waitForCompletion: true, maxWait: 300, pollEvery: 5 } }),
 			[{ json: { i: 0 } }, { json: { i: 1 } }, { json: { i: 2 } }],
 		);
 

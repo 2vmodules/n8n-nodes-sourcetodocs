@@ -40,8 +40,11 @@ const projectGetMany = (extra: Record<string, unknown> = {}, node: Record<string
 const documentGetMany = (projectId = 'a0000000-0000-4000-8000-000000000001', node: Record<string, unknown> = {}) =>
 	s2d({ resource: 'document', operation: 'getMany', projectId }, node);
 const documentGet = (node: Record<string, unknown> = {}) => s2d({ resource: 'document', operation: 'get' }, node);
-const runGet = (runId: string, extra: Record<string, unknown> = {}, node: Record<string, unknown> = {}) =>
-	s2d({ resource: 'run', operation: 'get', runId, ...extra }, node);
+const runGet = (runId: string, extra: Record<string, unknown> = {}, node: Record<string, unknown> = {}) => {
+	const { summaryOnly, maxWait, ...top } = extra;
+	const options = { ...(summaryOnly === undefined ? {} : { summaryOnly }), ...(maxWait === undefined ? {} : { maxWait }) };
+	return s2d({ resource: 'run', operation: 'get', runId, ...top, options } as never, node);
+};
 
 const paths = (api: FakeApi) => api.requests.map((r) => `${r.method} ${r.path}`);
 

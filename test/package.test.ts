@@ -15,8 +15,9 @@ const manifest = JSON.parse(read('package.json')) as { version: string; keywords
 const codex = JSON.parse(read('nodes/SourceToDocs/SourceToDocs.node.json')) as { alias?: string[] };
 
 describe('package metadata', () => {
-	it('is the first public release, 1.0.0', () => {
-		expect(manifest.version).toBe('1.0.0');
+	it('is a semantic version, and the CHANGELOG\'s newest release', () => {
+		expect(manifest.version).toMatch(/^\d+\.\d+\.\d+$/);
+		expect(read('CHANGELOG.md').match(/^## \[(\d+\.\d+\.\d+)\]/m)?.[1]).toBe(manifest.version);
 	});
 
 	it('keeps the community node keyword and carries the search terms', () => {
@@ -36,11 +37,21 @@ describe('package metadata', () => {
 describe('CHANGELOG', () => {
 	const changelog = read('CHANGELOG.md');
 
-	it('records one first release for the package version, and no development log', () => {
-		expect(changelog).toMatch(new RegExp(`^## \\[${manifest.version.replace(/\./g, '\\.')}\\] - \\d{4}-\\d{2}-\\d{2}$`, 'm'));
-		expect(changelog.match(/^## \[/gm)).toHaveLength(1);
+	const sections = changelog.split(/^(?=## \[)/m).slice(1);
+	const section = (version: string) => sections.find((text) => text.startsWith(`## [${version}]`)) ?? '';
+	const headingsOf = (text: string) => text.match(/^### .+$/gm) ?? [];
+
+	it('has one dated heading per release, the newest being the package version, and no [Unreleased]', () => {
+		for (const text of sections) expect(text.split('\n')[0]).toMatch(/^## \[\d+\.\d+\.\d+\] - \d{4}-\d{2}-\d{2}$/);
+		expect(changelog.match(/^## \[/gm)).toHaveLength(2);
+		expect(sections[0]).toMatch(new RegExp(`^## \\[${manifest.version.replace(/\./g, '\\.')}\\] - `));
 		expect(changelog).not.toContain('[Unreleased]');
-		expect(changelog).not.toMatch(/^### (Changed|Fixed)/m);
+	});
+
+	it('keeps the first release to its Added list, and 2.0.0 to one Changed list', () => {
+		expect(headingsOf(section('1.0.0'))).toEqual(['### Added']);
+		expect(headingsOf(section('2.0.0'))).toEqual(['### Changed']);
+		expect(changelog).not.toMatch(/^### Fixed/m);
 	});
 });
 

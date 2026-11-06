@@ -135,7 +135,7 @@ describe('the token stays out of run data and stored errors', () => {
 			baseUrl: api.baseUrl,
 			nodes: [
 				emit([{ json: {} }]),
-				s2dConnected({ waitForCompletion: true, maxWait: 60, pollEvery: 5 }),
+				s2dConnected({ options: { waitForCompletion: true, maxWait: 60, pollEvery: 5 } }),
 			],
 			connections: [['Emit', 'SourceToDocs']],
 			token: secret,

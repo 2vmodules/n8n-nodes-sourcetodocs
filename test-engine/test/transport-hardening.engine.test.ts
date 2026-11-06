@@ -235,7 +235,7 @@ describe('waiting for a run that stops answering', () => {
 	const generate = (api: FakeApi, parameters: Record<string, unknown>) =>
 		runWorkflow({
 			baseUrl: api.baseUrl,
-			nodes: [emit([{ json: {} }]), s2dConnected({ waitForCompletion: true, ...parameters })],
+			nodes: [emit([{ json: {} }]), s2dConnected({ options: { waitForCompletion: true, ...parameters } })],
 			connections: [['Emit', 'SourceToDocs']],
 		});
 

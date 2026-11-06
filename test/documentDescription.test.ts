@@ -4,9 +4,78 @@ import { documentFields, documentOperations } from '../nodes/SourceToDocs/descri
 import { projectFields } from '../nodes/SourceToDocs/descriptions/ProjectDescription';
 import { runFields, runOperations } from '../nodes/SourceToDocs/descriptions/RunDescription';
 
+type Item = { name: string; displayName: string; type: string; default?: unknown; typeOptions?: Record<string, unknown>; displayOptions?: { show?: Record<string, unknown>; hide?: Record<string, unknown> }; description?: string; hint?: string };
+
+/** The Options collection of an operation, and the items inside it. */
+const optionsOf = (fields: Array<{ name: string; displayOptions?: { show?: Record<string, unknown> } }>, resource: string, operation: string) =>
+	fields.find((f) => f.name === 'options' && JSON.stringify(f.displayOptions?.show) === JSON.stringify({ resource: [resource], operation: [operation] })) as
+		| ({ options: Item[]; type: string; default: unknown; displayName: string; placeholder?: string; displayOptions?: unknown } & { name: string })
+		| undefined;
+const generateOptions = () => optionsOf(documentFields, 'document', 'generate');
+const getOptions = () => optionsOf(runFields, 'run', 'get');
+const generateItem = (name: string) => generateOptions()?.options.find((item) => item.name === name);
+const getItem = (name: string) => getOptions()?.options.find((item) => item.name === name);
+
+describe('the Options collections', () => {
+	it('Generate and Run → Get each have one, shown for their operation, the last property of it', () => {
+		for (const [fields, collection, last] of [
+			[documentFields, generateOptions(), 'generate'],
+			[runFields, getOptions(), 'get'],
+		] as const) {
+			expect(collection).toBeDefined();
+			expect(collection).toMatchObject({ displayName: 'Options', name: 'options', type: 'collection', placeholder: 'Add Option', default: {} });
+			expect(fields.filter((f) => f.name === 'options')).toHaveLength(1);
+			const ofOperation = fields.filter((f) => JSON.stringify(f.displayOptions?.show ?? {}).includes(`"operation":["${last}"`));
+			expect(ofOperation.length).toBeGreaterThan(3);
+			expect(ofOperation[ofOperation.length - 1]).toBe(collection);
+		}
+	});
+
+	it('hold the optional fields, in n8n\'s alphabetical order by display name, with their defaults and type options', () => {
+		const generate = generateOptions()?.options ?? [];
+		expect(generate.map((item) => item.displayName)).toEqual(['Deliver To Names or IDs', 'Idempotency Key', 'Max Wait (Seconds)', 'Poll Every (Seconds)', 'Wait For Completion']);
+		expect(generate.map((item) => item.name)).toEqual(['distributionIds', 'idempotencyKey', 'maxWait', 'pollEvery', 'waitForCompletion']);
+		expect(generate.map((item) => item.default)).toEqual([[], '', 300, 5, true]);
+		expect(generateItem('distributionIds')?.typeOptions).toEqual({ loadOptionsMethod: 'getDistributions', loadOptionsDependsOn: ['documentId.value'] });
+		expect(generateItem('maxWait')?.typeOptions).toEqual({ minValue: 1 });
+		expect(generateItem('pollEvery')?.typeOptions).toEqual({ minValue: 2 });
+
+		const get = getOptions()?.options ?? [];
+		expect(get.map((item) => item.displayName)).toEqual(['Max Wait (Seconds)', 'Summary Only']);
+		expect(get.map((item) => item.default)).toEqual([300, false]);
+	});
+
+	it('their items carry no resource or operation condition, which would hide them for ever inside a collection', () => {
+		for (const item of [...(generateOptions()?.options ?? []), ...(getOptions()?.options ?? [])]) {
+			const conditions = JSON.stringify(item.displayOptions ?? {});
+			expect(conditions, item.name).not.toMatch(/resource|operation/);
+		}
+	});
+
+	it('Max Wait and Poll Every hide when Wait For Completion is off, not show only when it is on', () => {
+		for (const name of ['maxWait', 'pollEvery']) {
+			expect(generateItem(name)?.displayOptions, name).toEqual({ hide: { waitForCompletion: [false] } });
+		}
+	});
+
+	it("Run → Get's Max Wait is for 1.1 and later, and hides for Summary Only", () => {
+		expect(getItem('maxWait')?.displayOptions).toEqual({
+			show: { '@version': [{ _cnd: { gte: 1.1 } }] },
+			hide: { summaryOnly: [true] },
+		});
+		expect(getItem('summaryOnly')?.displayOptions).toBeUndefined();
+	});
+
+	it('none of the seven names is a top-level property of Generate or Run → Get', () => {
+		for (const name of ['distributionIds', 'waitForCompletion', 'maxWait', 'pollEvery', 'idempotencyKey', 'summaryOnly']) {
+			expect([...documentFields, ...runFields].filter((f) => f.name === name), name).toEqual([]);
+		}
+	});
+});
+
 describe('documentFields — Deliver To description', () => {
 	it('tells the truth about an empty selection: all enabled distributions, not nowhere', () => {
-		const field = documentFields.find((f) => f.name === 'distributionIds');
+		const field = generateItem('distributionIds');
 
 		expect(field).toBeDefined();
 		expect(field?.description).toContain('all enabled distributions');
@@ -14,7 +83,7 @@ describe('documentFields — Deliver To description', () => {
 	});
 
 	it('keeps inline_data/distribution_ids jargon out of the description, in the hint instead', () => {
-		const field = documentFields.find((f) => f.name === 'distributionIds');
+		const field = generateItem('distributionIds');
 
 		expect(field?.description).not.toContain('distribution_ids');
 		expect(field?.hint).toContain('distribution_ids');
@@ -109,7 +178,7 @@ describe('copy per n8n\'s UX guidelines', () => {
 
 	it('Max Wait and Poll Every say their cap and how they relate', () => {
 		for (const name of ['maxWait', 'pollEvery']) {
-			const description = documentFields.find((field) => field.name === name)?.description ?? '';
+			const description = generateItem(name)?.description ?? '';
 
 			expect(description, name).toContain('3600 s');
 			expect(description, name).toContain("'Max Wait (Seconds)' is at least 'Poll Every (Seconds)'");
@@ -117,22 +186,22 @@ describe('copy per n8n\'s UX guidelines', () => {
 	});
 
 	it("Run → Get's Max Wait says its bounds, which are Generate's", () => {
-		const generate = documentFields.find((field) => field.name === 'maxWait');
-		const get = runFields.find((field) => field.name === 'maxWait');
+		const generate = generateItem('maxWait');
+		const get = getItem('maxWait');
 
 		expect(get?.displayName).toBe(generate?.displayName);
 		expect(get?.default).toBe(generate?.default);
 		expect(get?.typeOptions).toEqual(generate?.typeOptions);
-		expect(get?.displayOptions?.show).toMatchObject({ resource: ['run'], operation: ['get'] });
-		expect(get?.description).toContain('3600 s');
+				expect(get?.description).toContain('3600 s');
 		expect(get?.description).toContain("at least 5 s, the 'Poll Every (Seconds)' default");
 	});
 
 	it('the Idempotency Key description matches the code: any run that ended failed starts a new one', () => {
-		const description = documentFields.find((field) => field.name === 'idempotencyKey')?.description ?? '';
+		const description = generateItem('idempotencyKey')?.description ?? '';
 
 		expect(description).toContain("A run that ended with status 'failed' is not resumed, whether or not it made its document");
 		expect(description).not.toContain('ended without producing a document');
+		expect(description).not.toMatch(/^Optional/);
 	});
 
 	it('descriptions put the names of parameters, fields and values in single quotes', () => {

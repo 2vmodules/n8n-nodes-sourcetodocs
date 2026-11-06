@@ -4,6 +4,19 @@ All notable changes to `@twovmodules/n8n-nodes-sourcetodocs` are recorded here. 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [2.0.0] - 2026-11-06
+
+### Changed
+
+- **Optional fields are now under Options.** On Document → Generate, **Deliver To**, **Wait For
+  Completion**, **Max Wait**, **Poll Every** and **Idempotency Key** moved into an **Options**
+  collection; on Run → Get, **Summary Only** and **Max Wait** did too. They behave as before, and an
+  empty Options collection is the same as the old defaults. This applies to node versions 1 and 1.1.
+  A workflow saved with 1.0.0 loses the values it held for these fields when it is opened or run: n8n
+  drops the old top-level values without an error. A node with Wait For Completion off waits again, a
+  node with its own Idempotency Key switches to the automatic key, and a Deliver To subset becomes
+  every enabled distribution. Set them again under Options.
+
 ## [1.0.0] - 2026-10-13
 
 First public release.

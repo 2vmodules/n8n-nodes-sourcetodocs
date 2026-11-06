@@ -100,7 +100,7 @@ describe('the request', () => {
 			baseUrl: api.baseUrl,
 			nodes: [
 				emit([{ json: {} }]),
-				s2d({ rowsFrom: 'connected', idempotencyKey: 'key-9' }, { name: 'SourceToDocs' }),
+				s2d({ rowsFrom: 'connected', options: { idempotencyKey: 'key-9' } }, { name: 'SourceToDocs' }),
 			],
 			connections: [['Emit', 'SourceToDocs']],
 		});

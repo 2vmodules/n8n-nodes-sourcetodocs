@@ -223,19 +223,19 @@ describe.concurrent('The automatic key', () => {
 });
 
 describe.concurrent('Retry On Fail resumes the run', () => {
-	const variants: Array<{ title: string; parameters: INodeParameters }> = [
+	const variants: Array<{ title: string; parameters: { options?: { idempotencyKey?: string } } }> = [
 		{ title: 'with the automatic key', parameters: {} },
-		{ title: 'with a key the person set', parameters: { idempotencyKey: 'invoice-2026-10' } },
+		{ title: 'with a key the person set', parameters: { options: { idempotencyKey: 'invoice-2026-10' } } },
 	];
 
 	it.each(variants)('a run that ends failed is followed by one new run, then adopted or chained again, $title', async ({ parameters }) => {
 		const fake = backend({ statusOf: (n) => (n === 1 ? 'failed' : 'succeeded') });
 		const api = await startApi(fake.router);
 
-		const result = await generate(api, { waitForCompletion: true, maxWait: 30, pollEvery: 2, ...parameters }, retrying);
+		const result = await generate(api, { options: { waitForCompletion: true, maxWait: 30, pollEvery: 2, ...parameters.options } }, retrying);
 
 		const first = keyOf(api.posts()[0]) as string;
-		if (parameters.idempotencyKey !== undefined) expect(first).toBe(parameters.idempotencyKey);
+		if (parameters.options?.idempotencyKey !== undefined) expect(first).toBe(parameters.options.idempotencyKey);
 		// Try 1 creates run 1, which ends failed. Try 2 meets that conflict and starts run 2 under the derived key.
 		expect(api.posts().map(keyOf)).toEqual([first, first, `${first}:after:${RUN_1}`]);
 		expect(fake.state.created).toBe(2);
@@ -248,7 +248,7 @@ describe.concurrent('Retry On Fail resumes the run', () => {
 		const fake = backend({ status: 'failed' });
 		const api = await startApi(fake.router);
 
-		const result = await generate(api, { waitForCompletion: true, ...parameters }, retrying);
+		const result = await generate(api, { options: { waitForCompletion: true, ...parameters.options } }, retrying);
 
 		const first = keyOf(api.posts()[0]) as string;
 		const second = `${first}:after:${runId(1)}`;
@@ -266,7 +266,7 @@ describe.concurrent('Retry On Fail resumes the run', () => {
 		});
 		const api = await startApi(fake.router);
 
-		const result = await generate(api, { waitForCompletion: true, maxWait: 30, pollEvery: 2, ...parameters }, retrying);
+		const result = await generate(api, { options: { waitForCompletion: true, maxWait: 30, pollEvery: 2, ...parameters.options } }, retrying);
 
 		expect(result.errorOf('SourceToDocs')).toBeUndefined();
 		expect(fake.state.created).toBe(1);
@@ -280,7 +280,7 @@ describe.concurrent('Retry On Fail resumes the run', () => {
 	it('an ordinary first start is not marked idempotent_replay', async () => {
 		const api = await startApi(backend({ status: 'succeeded' }).router);
 
-		const result = await generate(api, { waitForCompletion: true });
+		const result = await generate(api, { options: { waitForCompletion: true } });
 
 		expect(result.json('SourceToDocs')[0]).not.toHaveProperty('idempotent_replay');
 	});
@@ -290,9 +290,9 @@ describe.concurrent('The status of the run a conflict names decides', () => {
 	it.each(['pending', 'processing', 'succeeded', 'partial_success'])('a %s run is adopted and no new run is started', async (status) => {
 		const fake = backend({ status });
 		const api = await startApi(fake.router);
-		await generate(api, { idempotencyKey: 'monthly' });
+		await generate(api, { options: { idempotencyKey: 'monthly' } });
 
-		const result = await generate(api, { idempotencyKey: 'monthly' });
+		const result = await generate(api, { options: { idempotencyKey: 'monthly' } });
 
 		expect(fake.state.created).toBe(1);
 		expect(api.posts().map(keyOf)).toEqual(['monthly', 'monthly']);
@@ -302,9 +302,9 @@ describe.concurrent('The status of the run a conflict names decides', () => {
 	it('a failed run under a key the person set is followed by <key>:after:<run id>', async () => {
 		const fake = backend({ statusOf: (n) => (n === 1 ? 'failed' : 'succeeded') });
 		const api = await startApi(fake.router);
-		await generate(api, { idempotencyKey: 'monthly' });
+		await generate(api, { options: { idempotencyKey: 'monthly' } });
 
-		const result = await generate(api, { idempotencyKey: 'monthly' });
+		const result = await generate(api, { options: { idempotencyKey: 'monthly' } });
 
 		expect(api.posts().map(keyOf)).toEqual(['monthly', 'monthly', `monthly:after:${RUN_1}`]);
 		expect(fake.state.created).toBe(2);
@@ -314,9 +314,9 @@ describe.concurrent('The status of the run a conflict names decides', () => {
 	it('a failed batch is chained like a single run (a failed batch means every child failed, so no file was delivered)', async () => {
 		const fake = backend({ kind: 'batch', statusOf: (n) => (n === 1 ? 'failed' : 'pending') });
 		const api = await startApi(fake.router);
-		await generate(api, { idempotencyKey: 'monthly' });
+		await generate(api, { options: { idempotencyKey: 'monthly' } });
 
-		const result = await generate(api, { idempotencyKey: 'monthly' });
+		const result = await generate(api, { options: { idempotencyKey: 'monthly' } });
 
 		expect(api.posts().map(keyOf)).toEqual(['monthly', 'monthly', `monthly:after:${RUN_1}`]);
 		expect(result.json('SourceToDocs')).toEqual([expect.objectContaining({ run_id: runId(2), kind: 'batch' })]);
@@ -328,9 +328,9 @@ describe.concurrent('A conflict that names the run', () => {
 		const fake = backend({ status: 'succeeded' });
 		const api = await startApi(fake.router);
 		// The key already holds a run from an earlier execution.
-		await generate(api, { idempotencyKey: 'monthly' });
+		await generate(api, { options: { idempotencyKey: 'monthly' } });
 
-		const result = await generate(api, { idempotencyKey: 'monthly' });
+		const result = await generate(api, { options: { idempotencyKey: 'monthly' } });
 
 		expect(fake.state.created).toBe(1);
 		expect(api.posts().map(keyOf)).toEqual(['monthly', 'monthly']);
@@ -345,9 +345,9 @@ describe.concurrent('A conflict that names the run', () => {
 			getRun: (n) => (n === 1 ? undefined : succeededRun()),
 		});
 		const api = await startApi(fake.router);
-		await generate(api, { idempotencyKey: 'monthly' });
+		await generate(api, { options: { idempotencyKey: 'monthly' } });
 
-		const result = await generate(api, { idempotencyKey: 'monthly', waitForCompletion: true, maxWait: 30, pollEvery: 2 });
+		const result = await generate(api, { options: { idempotencyKey: 'monthly', waitForCompletion: true, maxWait: 30, pollEvery: 2 } });
 
 		expect(fake.state.created).toBe(1);
 		expect(result.json('SourceToDocs')).toEqual([
@@ -360,9 +360,9 @@ describe.concurrent('A conflict that names the run', () => {
 	it('without errors.run_id stays the conflict error, and is not retried', async () => {
 		const fake = backend({ conflictErrors: () => ({ code: 'run_idempotency_conflict' }) });
 		const api = await startApi(fake.router);
-		await generate(api, { idempotencyKey: 'monthly' });
+		await generate(api, { options: { idempotencyKey: 'monthly' } });
 
-		const result = await generate(api, { idempotencyKey: 'monthly' }, { onError: 'continueRegularOutput' });
+		const result = await generate(api, { options: { idempotencyKey: 'monthly' } }, { onError: 'continueRegularOutput' });
 
 		expect(api.posts()).toHaveLength(2);
 		expect(api.gets()).toHaveLength(0);
@@ -376,9 +376,9 @@ describe.concurrent('A conflict that names the run', () => {
 	it('with a run_id that is not an id stays the error, shows that run_id, and reads nothing', async () => {
 		const fake = backend({ conflictErrors: (key) => ({ code: 'run_idempotency_conflict', run_id: '../../projects', idempotency_key: key }) });
 		const api = await startApi(fake.router);
-		await generate(api, { idempotencyKey: 'monthly' });
+		await generate(api, { options: { idempotencyKey: 'monthly' } });
 
-		const result = await generate(api, { idempotencyKey: 'monthly' }, { onError: 'continueRegularOutput' });
+		const result = await generate(api, { options: { idempotencyKey: 'monthly' } }, { onError: 'continueRegularOutput' });
 
 		expect(api.gets()).toHaveLength(0);
 		expect(result.json('SourceToDocs')).toEqual([
@@ -389,9 +389,9 @@ describe.concurrent('A conflict that names the run', () => {
 	it('is an error naming the run when that run cannot be read', async () => {
 		const fake = backend({ getRun: () => failure(404, 'not_found', 'Resource not found.') });
 		const api = await startApi(fake.router);
-		await generate(api, { idempotencyKey: 'monthly' });
+		await generate(api, { options: { idempotencyKey: 'monthly' } });
 
-		const result = await generate(api, { idempotencyKey: 'monthly' }, { onError: 'continueRegularOutput' });
+		const result = await generate(api, { options: { idempotencyKey: 'monthly' } }, { onError: 'continueRegularOutput' });
 
 		expect(result.json('SourceToDocs')).toEqual([expect.objectContaining({ error: 'Resource not found.', run_id: RUN_1 })]);
 	});
@@ -493,7 +493,7 @@ describe.concurrent('Retrying the start POST', () => {
 		const fake = backend({ posts: [{ ...failure(429, 'generic', 'Too Many Attempts.'), headers: { 'retry-after': '30' } }] });
 		const api = await startApi(fake.router);
 
-		const result = await generate(api, { waitForCompletion: true, maxWait: 5, pollEvery: 2 });
+		const result = await generate(api, { options: { waitForCompletion: true, maxWait: 5, pollEvery: 2 } });
 
 		expect(api.posts()).toHaveLength(1);
 		expect(result.errorOf('SourceToDocs')?.message).toBe('Too Many Attempts.');
@@ -527,7 +527,7 @@ describe.concurrent('Max Wait and Poll Every are bounded whatever an expression 
 		const fake = processingTwice();
 		const api = await startApi(fake.router);
 
-		const result = await generate(api, { waitForCompletion: true, maxWait: '={{ $json.nothing }}', pollEvery: '={{ $json.nothing }}' });
+		const result = await generate(api, { options: { waitForCompletion: true, maxWait: '={{ $json.nothing }}', pollEvery: '={{ $json.nothing }}' } });
 
 		expect(result.errorOf('SourceToDocs')).toBeUndefined();
 		expect(result.json('SourceToDocs')[0]).toMatchObject({ status: 'succeeded' });
@@ -546,7 +546,7 @@ describe.concurrent('Max Wait and Poll Every are bounded whatever an expression 
 		const fake = backend();
 		const api = await startApi(fake.router);
 
-		const result = await generate(api, { waitForCompletion: true, ...values });
+		const result = await generate(api, { options: { waitForCompletion: true, ...values } });
 
 		const error = result.errorOf('SourceToDocs');
 		expect(error?.name).toBe('NodeOperationError');
@@ -557,7 +557,7 @@ describe.concurrent('Max Wait and Poll Every are bounded whatever an expression 
 	it('is not read at all when the node does not wait', async () => {
 		const api = await startApi(backend().router);
 
-		const result = await generate(api, { waitForCompletion: false, maxWait: "={{ 'soon' }}" });
+		const result = await generate(api, { options: { waitForCompletion: false, maxWait: "={{ 'soon' }}" } });
 
 		expect(result.errorOf('SourceToDocs')).toBeUndefined();
 		expect(api.posts()).toHaveLength(1);
@@ -590,7 +590,7 @@ describe.concurrent('The AI tool variant, invoked in process', () => {
 
 		const { outcomes } = await runAsTool({
 			baseUrl: api.baseUrl,
-			node: toolNode({ waitForCompletion: true, maxWait: 30, pollEvery: 2 }, retryingTool),
+			node: toolNode({ options: { waitForCompletion: true, maxWait: 30, pollEvery: 2 } }, retryingTool),
 			calls: [{ client: 'A1' }],
 		});
 
@@ -660,7 +660,7 @@ describe.concurrent('An automatic key adopts only a recent run', () => {
 	});
 
 	it('a run created 7 h ago under a key the person set is adopted, whatever its age', async () => {
-		const { fake, result } = await twice({ idempotencyKey: 'monthly' }, ago(7));
+		const { fake, result } = await twice({ options: { idempotencyKey: 'monthly' } }, ago(7));
 
 		expect(fake.state.created).toBe(1);
 		expect(result.json('SourceToDocs')).toEqual([expect.objectContaining({ run_id: RUN_1, idempotent_replay: true })]);

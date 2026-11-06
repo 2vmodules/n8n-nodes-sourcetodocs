@@ -224,7 +224,7 @@ describe('Generate reads its parameters from the first item', () => {
 					{ 'Client name': '={{ $json.name }}', ...otherShown },
 					{
 						documentId: { __rl: true, mode: 'id', value: '={{ $json.doc }}' },
-						idempotencyKey: '={{ $json.key }}',
+						options: { idempotencyKey: '={{ $json.key }}' },
 					},
 				),
 			],

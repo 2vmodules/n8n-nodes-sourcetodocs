@@ -153,7 +153,7 @@ describe('Generate when the API refuses the start', () => {
 			defaultRouter({ distributions: [{ id: 'rd-1', distribution_type: 'google_drive', status: 'pending' }] }),
 		);
 
-		const result = await generate(api, s2dConnected({ distributionIds: ['d0000000-0000-4000-8000-0000000000a1', 'd0000000-0000-4000-8000-0000000000a2'] }));
+		const result = await generate(api, s2dConnected({ options: { distributionIds: ['d0000000-0000-4000-8000-0000000000a1', 'd0000000-0000-4000-8000-0000000000a2'] } }));
 
 		// Every picked id goes to the API; the API decides which are valid and delivers to those.
 		expect(bodyOf(api.posts()[0])).toEqual({ distribution_ids: ['d0000000-0000-4000-8000-0000000000a1', 'd0000000-0000-4000-8000-0000000000a2'] });
@@ -167,7 +167,7 @@ describe('Generate when the API refuses the start', () => {
 });
 
 describe('Generate, Continue On Fail after the run started', () => {
-	const waiting = { waitForCompletion: true, maxWait: 300, pollEvery: 5 };
+	const waiting = { options: { waitForCompletion: true, maxWait: 300, pollEvery: 5 } };
 	const failedRun = runPayload({
 		status: 'failed',
 		error_code: 'render_failed',

@@ -42,7 +42,7 @@ async function generate(api: FakeApi, node: TestNode, options: Partial<RunOption
 		...options,
 	});
 }
-const waiting = (extra: INodeParameters = {}) => s2dConnected({ waitForCompletion: true, ...extra });
+const waiting = (extra: INodeParameters = {}) => s2dConnected({ options: { waitForCompletion: true, ...extra } });
 
 describe.concurrent('an Idempotency Key that is not text', () => {
 	const keyOf = (api: FakeApi) => (api.posts()[0].body as { idempotency_key?: string }).idempotency_key;
@@ -51,7 +51,7 @@ describe.concurrent('an Idempotency Key that is not text', () => {
 	it('a number from an expression is used as its text', async () => {
 		const api = await startApi(start());
 
-		const result = await generate(api, s2dConnected({ idempotencyKey: '={{ 12345 }}' }));
+		const result = await generate(api, s2dConnected({ options: { idempotencyKey: '={{ 12345 }}' } }));
 
 		expect(result.errorOf('SourceToDocs')).toBeUndefined();
 		expect(keyOf(api)).toBe('12345');
@@ -61,8 +61,8 @@ describe.concurrent('an Idempotency Key that is not text', () => {
 		const api = await startApi(start());
 		const empty = await startApi(start());
 
-		await generate(api, s2dConnected({ idempotencyKey: '={{ "  order-7 " }}' }));
-		await generate(empty, s2dConnected({ idempotencyKey: '' }));
+		await generate(api, s2dConnected({ options: { idempotencyKey: '={{ "  order-7 " }}' } }));
+		await generate(empty, s2dConnected({ options: { idempotencyKey: '' } }));
 
 		expect(keyOf(api)).toBe('order-7');
 		expect(keyOf(empty)).toMatch(/^n8n:/);
@@ -76,7 +76,7 @@ describe.concurrent('an Idempotency Key that is not text', () => {
 	])('%s stops Generate with a message naming Idempotency Key, and sends nothing', async (_title, expression) => {
 		const api = await startApi(start());
 
-		const result = await generate(api, s2dConnected({ idempotencyKey: expression }));
+		const result = await generate(api, s2dConnected({ options: { idempotencyKey: expression } }));
 
 		const error = result.errorOf('SourceToDocs') as { name: string; message: string; description?: string } | undefined;
 		expect(error?.name).toBe('NodeOperationError');
@@ -349,7 +349,7 @@ describe.concurrent('Run → Get has the wait bounds of Generate', () => {
 	const batch = runPayload({ id: BATCH_ID, kind: 'batch', status: 'succeeded', file_count: 1 });
 	const router = (children: () => FakeReply): Router => (request) => (request.path.endsWith('/children') ? children() : ok({ run: batch }));
 	const get = (api: FakeApi, extra: INodeParameters) =>
-		runWorkflow({ baseUrl: api.baseUrl, nodes: [emit([{ json: {} }] as never), s2d({ resource: 'run', operation: 'get', runId: BATCH_ID, ...extra }, { typeVersion: 1.1 })], connections: [['Emit', 'SourceToDocs']] });
+		runWorkflow({ baseUrl: api.baseUrl, nodes: [emit([{ json: {} }] as never), s2d({ resource: 'run', operation: 'get', runId: BATCH_ID, options: extra }, { typeVersion: 1.1 })], connections: [['Emit', 'SourceToDocs']] });
 
 	it('a children list that keeps answering 429 ends within Max Wait, here raised to its 5 s floor', async () => {
 		const api = await startApi(router(() => retryAfter(1)));

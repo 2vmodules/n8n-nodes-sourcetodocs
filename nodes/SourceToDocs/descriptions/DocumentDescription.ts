@@ -371,89 +371,6 @@ export const documentFields: INodeProperties[] = [
 		hint: 'Only applies to Map Automatically and to Additional Data Sets',
 	},
 	{
-		displayName: 'Deliver To Names or IDs',
-		name: 'distributionIds',
-		type: 'multiOptions',
-		typeOptions: {
-			loadOptionsMethod: 'getDistributions',
-			loadOptionsDependsOn: ['documentId.value'],
-		},
-		default: [],
-		displayOptions: {
-			show: {
-				resource: ['document'],
-				operation: ['generate'],
-			},
-		},
-		description:
-			'The document\'s enabled distributions to deliver this run\'s file to. Leave empty to deliver to all enabled distributions. Not available for a split-configured document — it delivers through its own distributions instead, and this list shows a notice rather than a choice. Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
-		hint: 'Sent as distribution_ids; leaving it empty is the same as omitting distribution_ids from the Public API',
-	},
-	{
-		displayName: 'Wait For Completion',
-		name: 'waitForCompletion',
-		type: 'boolean',
-		default: true,
-		displayOptions: {
-			show: {
-				resource: ['document'],
-				operation: ['generate'],
-			},
-		},
-		description:
-			"Whether to poll the run until it finishes (or 'Max Wait (Seconds)' elapses) and return its file. Turned off, the node returns as soon as the run is created, with its starting status — poll it later with Run → Get.",
-	},
-	{
-		displayName: 'Max Wait (Seconds)',
-		name: 'maxWait',
-		type: 'number',
-		typeOptions: {
-			minValue: 1,
-		},
-		default: 300,
-		displayOptions: {
-			show: {
-				resource: ['document'],
-				operation: ['generate'],
-				waitForCompletion: [true],
-			},
-		},
-		description:
-			"How long to keep polling before giving up. A run still going when this elapses does not stop the workflow: the item comes back with 'timed_out: true' and the run's ID to poll later. 'Max Wait (Seconds)' is at least 'Poll Every (Seconds)'; both are capped at 3600 s.",
-	},
-	{
-		displayName: 'Poll Every (Seconds)',
-		name: 'pollEvery',
-		type: 'number',
-		typeOptions: {
-			minValue: 2,
-		},
-		default: 5,
-		displayOptions: {
-			show: {
-				resource: ['document'],
-				operation: ['generate'],
-				waitForCompletion: [true],
-			},
-		},
-		description:
-			"How often to check the run while waiting. 12 polls a minute sits well under the 60-requests-a-minute token limit. 'Poll Every (Seconds)' is at least 2 s; both it and 'Max Wait (Seconds)' are capped at 3600 s, and 'Max Wait (Seconds)' is at least 'Poll Every (Seconds)'.",
-	},
-	{
-		displayName: 'Idempotency Key',
-		name: 'idempotencyKey',
-		type: 'string',
-		default: '',
-		displayOptions: {
-			show: {
-				resource: ['document'],
-				operation: ['generate'],
-			},
-		},
-		description:
-			"Optional. Leave empty and the node sends its own key, the same on every 'Retry On Fail' try of this node run and different for every run and every execution, so a retry resumes the run it started instead of making a second (as an AI tool the key comes from the request, so two identical calls in one execution share one run). The automatic key adopts only a run created in the last 6 hours. A key you set is sent as it is, and a repeat of it resumes the run that holds it (the output says 'idempotent_replay: true'). A run that ended with status 'failed' is not resumed, whether or not it made its document: the retry starts one new run under the key followed by ':after:' and that run's ID, for your own key too. A key resumes the run that holds it whatever its rows, so when an AI agent fills it, build it from the execution's ID and the model's value: a key the model picks alone can return another call's run",
-	},
-	{
 		displayName: 'Simplify',
 		name: 'simplify',
 		type: 'boolean',
@@ -468,5 +385,81 @@ export const documentFields: INodeProperties[] = [
 		description: 'Whether to return a simplified version of the response instead of the raw data',
 	},
 	...outputProperties('document', 'generate'),
+	{
+		displayName: 'Options',
+		name: 'options',
+		type: 'collection',
+		placeholder: 'Add Option',
+		default: {},
+		displayOptions: {
+			show: {
+				resource: ['document'],
+				operation: ['generate'],
+			},
+		},
+		options: [
+			{
+				displayName: 'Deliver To Names or IDs',
+				name: 'distributionIds',
+				type: 'multiOptions',
+				typeOptions: {
+					loadOptionsMethod: 'getDistributions',
+					loadOptionsDependsOn: ['documentId.value'],
+				},
+				default: [],
+				description:
+					'The document\'s enabled distributions to deliver this run\'s file to. Leave empty to deliver to all enabled distributions. Not available for a split-configured document — it delivers through its own distributions instead, and this list shows a notice rather than a choice. Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+				hint: 'Sent as distribution_ids; leaving it empty is the same as omitting distribution_ids from the Public API',
+			},
+			{
+				displayName: 'Idempotency Key',
+				name: 'idempotencyKey',
+				type: 'string',
+				default: '',
+				description:
+					"Leave empty and the node sends its own key, the same on every 'Retry On Fail' try of this node run and different for every run and every execution, so a retry resumes the run it started instead of making a second (as an AI tool the key comes from the request, so two identical calls in one execution share one run). The automatic key adopts only a run created in the last 6 hours. A key you set is sent as it is, and a repeat of it resumes the run that holds it (the output says 'idempotent_replay: true'). A run that ended with status 'failed' is not resumed, whether or not it made its document: the retry starts one new run under the key followed by ':after:' and that run's ID, for your own key too. A key resumes the run that holds it whatever its rows, so when an AI agent fills it, build it from the execution's ID and the model's value: a key the model picks alone can return another call's run",
+			},
+			{
+				displayName: 'Max Wait (Seconds)',
+				name: 'maxWait',
+				type: 'number',
+				typeOptions: {
+					minValue: 1,
+				},
+				default: 300,
+				displayOptions: {
+					hide: {
+						waitForCompletion: [false],
+					},
+				},
+				description:
+					"How long to keep polling before giving up. A run still going when this elapses does not stop the workflow: the item comes back with 'timed_out: true' and the run's ID to poll later. 'Max Wait (Seconds)' is at least 'Poll Every (Seconds)'; both are capped at 3600 s.",
+			},
+			{
+				displayName: 'Poll Every (Seconds)',
+				name: 'pollEvery',
+				type: 'number',
+				typeOptions: {
+					minValue: 2,
+				},
+				default: 5,
+				displayOptions: {
+					hide: {
+						waitForCompletion: [false],
+					},
+				},
+				description:
+					"How often to check the run while waiting. 12 polls a minute sits well under the 60-requests-a-minute token limit. 'Poll Every (Seconds)' is at least 2 s; both it and 'Max Wait (Seconds)' are capped at 3600 s, and 'Max Wait (Seconds)' is at least 'Poll Every (Seconds)'.",
+			},
+			{
+				displayName: 'Wait For Completion',
+				name: 'waitForCompletion',
+				type: 'boolean',
+				default: true,
+				description:
+					"Whether to poll the run until it finishes (or 'Max Wait (Seconds)' elapses) and return its file. Turned off, the node returns as soon as the run is created, with its starting status — poll it later with Run → Get.",
+			},
+		],
+	},
 	...getManyLimitProperties('document'),
 ];

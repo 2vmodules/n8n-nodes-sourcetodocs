@@ -106,14 +106,14 @@ export async function executeRunGet(
 	itemIndex: number,
 ): Promise<INodeExecutionData[]> {
 	const runId = assertId(context.getNode(), 'Run ID', context.getNodeParameter('runId', itemIndex));
-	const summaryOnly = context.getNodeParameter('summaryOnly', itemIndex, false) as boolean;
+	const summaryOnly = context.getNodeParameter('options.summaryOnly', itemIndex, false) as boolean;
 	const output = readOutputChoice(context, itemIndex);
 
 	// The same bounds as Generate's wait (at least one poll interval, at most 3600 s), read and refused before anything is sent.
 	const { maxWaitMs } = resolveWaitOptions(
 		context.getNode(),
 		// Hidden for Summary Only and for version 1, where the fallback is the same 300 s Generate starts from.
-		context.getNodeParameter('maxWait', itemIndex, DEFAULT_MAX_WAIT_SECONDS, {
+		context.getNodeParameter('options.maxWait', itemIndex, DEFAULT_MAX_WAIT_SECONDS, {
 			skipValidation: true,
 		}),
 		undefined,

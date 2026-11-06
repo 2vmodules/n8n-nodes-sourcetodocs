@@ -44,39 +44,6 @@ export const runFields: INodeProperties[] = [
 			"The ID of the run to read — the run_id a Document → Generate item returned, or a run's own ID from a batch's children",
 	},
 	{
-		displayName: 'Summary Only',
-		name: 'summaryOnly',
-		type: 'boolean',
-		default: false,
-		displayOptions: {
-			show: {
-				resource: ['run'],
-				operation: ['get'],
-			},
-		},
-		description:
-			'Whether to return a batch run as a single summary item instead of listing its children. Has no effect on an ordinary (non-batch) run, which is always one item.',
-	},
-	{
-		displayName: 'Max Wait (Seconds)',
-		name: 'maxWait',
-		type: 'number',
-		typeOptions: {
-			minValue: 1,
-		},
-		default: 300,
-		displayOptions: {
-			show: {
-				resource: ['run'],
-				operation: ['get'],
-				summaryOnly: [false],
-				'@version': [{ _cnd: { gte: 1.1 } }],
-			},
-		},
-		description:
-			"How long to keep trying when the API answers a batch's children list with a busy or temporary answer, before giving up. 'Max Wait (Seconds)' is at least 5 s, the 'Poll Every (Seconds)' default of Document → Generate, and is capped at 3600 s. It does not apply to a single run or to 'Summary Only'. Node version 1 always uses the 300 s default.",
-	},
-	{
 		displayName: 'Simplify',
 		name: 'simplify',
 		type: 'boolean',
@@ -91,4 +58,46 @@ export const runFields: INodeProperties[] = [
 		description: 'Whether to return a simplified version of the response instead of the raw data',
 	},
 	...outputProperties('run', 'get'),
+	{
+		displayName: 'Options',
+		name: 'options',
+		type: 'collection',
+		placeholder: 'Add Option',
+		default: {},
+		displayOptions: {
+			show: {
+				resource: ['run'],
+				operation: ['get'],
+			},
+		},
+		options: [
+			{
+				displayName: 'Max Wait (Seconds)',
+				name: 'maxWait',
+				type: 'number',
+				typeOptions: {
+					minValue: 1,
+				},
+				default: 300,
+				displayOptions: {
+					show: {
+						'@version': [{ _cnd: { gte: 1.1 } }],
+					},
+					hide: {
+						summaryOnly: [true],
+					},
+				},
+				description:
+					"How long to keep trying when the API answers a batch's children list with a busy or temporary answer, before giving up. 'Max Wait (Seconds)' is at least 5 s, the 'Poll Every (Seconds)' default of Document → Generate, and is capped at 3600 s. It does not apply to a single run or to 'Summary Only'. Node version 1 always uses the 300 s default.",
+			},
+			{
+				displayName: 'Summary Only',
+				name: 'summaryOnly',
+				type: 'boolean',
+				default: false,
+				description:
+					'Whether to return a batch run as a single summary item instead of listing its children. Has no effect on an ordinary (non-batch) run, which is always one item.',
+			},
+		],
+	},
 ];

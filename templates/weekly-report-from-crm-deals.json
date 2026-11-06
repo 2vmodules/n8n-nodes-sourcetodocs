@@ -59,11 +59,11 @@
 					]
 				},
 				"unknownKeys": "drop",
-				"distributionIds": [],
-				"waitForCompletion": true,
-				"maxWait": 300,
-				"pollEvery": 5,
-				"idempotencyKey": "",
+				"options": {
+					"waitForCompletion": true,
+					"maxWait": 300,
+					"pollEvery": 5
+				},
 				"output": "simplified"
 			}
 		},

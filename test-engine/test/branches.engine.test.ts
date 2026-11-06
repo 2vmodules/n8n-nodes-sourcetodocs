@@ -39,7 +39,7 @@ interface ErrorCopy {
 	context: Record<string, unknown>;
 }
 
-const waiting = { waitForCompletion: true, maxWait: 300, pollEvery: 5 };
+const waiting = { options: { waitForCompletion: true, maxWait: 300, pollEvery: 5 } };
 const continueOn = { onError: 'continueRegularOutput' as const };
 
 async function generate(api: FakeApi, node: TestNode, items: unknown[] = [{ json: {} }]) {

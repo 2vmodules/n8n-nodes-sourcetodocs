@@ -23,7 +23,7 @@ const startApi = useFakeApis({ concurrent: true });
 async function generate(api: FakeApi, parameters: INodeParameters) {
 	return await runWorkflow({
 		baseUrl: api.baseUrl,
-		nodes: [emit([{ json: {} }]), s2dConnected({ waitForCompletion: true, ...parameters })],
+		nodes: [emit([{ json: {} }]), s2dConnected({ options: { waitForCompletion: true, ...parameters } })],
 		connections: [['Emit', 'SourceToDocs']],
 	});
 }

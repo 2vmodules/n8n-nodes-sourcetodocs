@@ -77,20 +77,21 @@ function storedParameters(typeVersion: number, parameters: INodeParameters): INo
 
 const doc = { __rl: true, mode: 'id', value: 'x' };
 
-describe('version 1 keeps its parameters', () => {
-	// These exact objects are what version 1 has always held.
+describe('both versions keep their other parameters, and the optional fields live in Options', () => {
+	const optionNames = ['distributionIds', 'waitForCompletion', 'maxWait', 'pollEvery', 'idempotencyKey', 'summaryOnly'];
+
 	it.each([
 		[
 			'Generate',
-			{ resource: 'document', operation: 'generate', documentId: doc, waitForCompletion: false, rowsFrom: 'connected' },
-			{ resource: 'document', operation: 'generate', projectId: '', documentId: doc, rowsFrom: 'connected', distributionIds: [], waitForCompletion: false, idempotencyKey: '', simplify: true },
+			{ resource: 'document', operation: 'generate', documentId: doc, rowsFrom: 'connected' },
+			{ resource: 'document', operation: 'generate', projectId: '', documentId: doc, rowsFrom: 'connected', options: {}, simplify: true },
 		],
 		[
-			'Generate, waiting',
-			{ resource: 'document', operation: 'generate', documentId: doc, waitForCompletion: true, rowsFrom: 'connected' },
-			{ resource: 'document', operation: 'generate', projectId: '', documentId: doc, rowsFrom: 'connected', distributionIds: [], waitForCompletion: true, maxWait: 300, pollEvery: 5, idempotencyKey: '', simplify: true },
+			'Generate, with Wait For Completion set',
+			{ resource: 'document', operation: 'generate', documentId: doc, rowsFrom: 'connected', options: { waitForCompletion: true } },
+			{ resource: 'document', operation: 'generate', projectId: '', documentId: doc, rowsFrom: 'connected', options: { waitForCompletion: true }, simplify: true },
 		],
-		['Run → Get', { resource: 'run', operation: 'get', runId: 'r' }, { resource: 'run', operation: 'get', runId: 'r', summaryOnly: false, simplify: true }],
+		['Run → Get', { resource: 'run', operation: 'get', runId: 'r' }, { resource: 'run', operation: 'get', runId: 'r', options: {}, simplify: true }],
 		['Project → Get Many', { resource: 'project', operation: 'getMany' }, { resource: 'project', operation: 'getMany' }],
 		['Document → Get Many', { resource: 'document', operation: 'getMany', projectId: 'p' }, { resource: 'document', operation: 'getMany', projectId: 'p' }],
 		[
@@ -98,22 +99,65 @@ describe('version 1 keeps its parameters', () => {
 			{ resource: 'document', operation: 'get', documentId: doc },
 			{ resource: 'document', operation: 'get', projectId: '', documentId: doc },
 		],
-	])('%s: the stored parameters are today\'s, with no output, limit or returnAll', (_name, stored, expected) => {
+	])('version 1, %s: the stored parameters hold an empty Options and no output, limit or returnAll', (_name, stored, expected) => {
 		expect(storedParameters(1, stored as INodeParameters)).toEqual(expected);
 	});
 
-	it('version 1.1 swaps Simplify for Output, adds Return All and Run → Get\'s Max Wait, nothing else', () => {
+	it('version 1.1 swaps Simplify for Output and adds Return All, nothing else', () => {
 		expect(storedParameters(1.1, { resource: 'run', operation: 'get', runId: 'r' })).toEqual({
-			resource: 'run', operation: 'get', runId: 'r', summaryOnly: false, maxWait: 300, output: 'simplified',
+			resource: 'run', operation: 'get', runId: 'r', options: {}, output: 'simplified',
 		});
-		expect(storedParameters(1.1, { resource: 'document', operation: 'generate', documentId: doc, waitForCompletion: false, rowsFrom: 'connected' })).toEqual({
-			resource: 'document', operation: 'generate', projectId: '', documentId: doc, rowsFrom: 'connected', distributionIds: [], waitForCompletion: false, idempotencyKey: '', output: 'simplified',
+		expect(storedParameters(1.1, { resource: 'document', operation: 'generate', documentId: doc, rowsFrom: 'connected' })).toEqual({
+			resource: 'document', operation: 'generate', projectId: '', documentId: doc, rowsFrom: 'connected', options: {}, output: 'simplified',
 		});
 		expect(storedParameters(1.1, { resource: 'project', operation: 'getMany' })).toEqual({ resource: 'project', operation: 'getMany', returnAll: true });
 		expect(storedParameters(1.1, { resource: 'document', operation: 'getMany', projectId: 'p', returnAll: false })).toEqual({
 			resource: 'document', operation: 'getMany', projectId: 'p', returnAll: false, limit: 50,
 		});
 		expect(storedParameters(1.1, { resource: 'run', operation: 'get', runId: 'r', output: 'selected' })).toMatchObject({ output: 'selected', outputFields: ['run_id', 'status', 'file_url'] });
+	});
+
+	it.each([1, 1.1])('version %s: a value saved at the top level for any of the optional fields is dropped, not kept', (version) => {
+		const stored = storedParameters(version, {
+			resource: 'document', operation: 'generate', documentId: doc, rowsFrom: 'connected',
+			distributionIds: ['x'], waitForCompletion: false, maxWait: 9, pollEvery: 9, idempotencyKey: 'k',
+		});
+		for (const name of optionNames) expect(stored).not.toHaveProperty(name);
+		expect(stored.options).toEqual({});
+		expect(storedParameters(version, { resource: 'run', operation: 'get', runId: 'r', summaryOnly: true, maxWait: 9 })).not.toHaveProperty('summaryOnly');
+	});
+
+	describe('inside the Options collection', () => {
+		const nodeOf = (typeVersion: number, parameters: INodeParameters) => ({ id: '1', name: 'n', type: 't', typeVersion, position: [0, 0] as [number, number], parameters });
+		const collection = (resource: string, operation: string) =>
+			s2dDescription.properties.find((p) => p.name === 'options' && p.displayOptions?.show?.resource?.[0] === resource && p.displayOptions?.show?.operation?.[0] === operation);
+		const shown = (version: number, resource: string, operation: string, parameters: INodeParameters, item: string) => {
+			const node = nodeOf(version, { resource, operation, ...parameters });
+			const field = (collection(resource, operation)?.options as Array<{ name: string }>).find((o) => o.name === item);
+			return wf.NodeHelpers.displayParameterPath(
+				wf.NodeHelpers.getNodeParameters(s2dDescription.properties, node.parameters, true, false, node, s2dDescription) as INodeParameters,
+				field as never,
+				'options',
+				node,
+				s2dDescription,
+			);
+		};
+
+		it.each([1, 1.1])('version %s Generate: Max Wait and Poll Every show when Wait For Completion was never added or is on, and hide when it is off', (version) => {
+			for (const item of ['maxWait', 'pollEvery']) {
+				expect(shown(version, 'document', 'generate', { documentId: doc, rowsFrom: 'connected' }, item)).toBe(true);
+				expect(shown(version, 'document', 'generate', { documentId: doc, rowsFrom: 'connected', options: { waitForCompletion: true } }, item)).toBe(true);
+				expect(shown(version, 'document', 'generate', { documentId: doc, rowsFrom: 'connected', options: { waitForCompletion: false } }, item)).toBe(false);
+			}
+		});
+
+		it('Run → Get: Max Wait hides for Summary Only and at version 1, which offers only Summary Only', () => {
+			expect(shown(1.1, 'run', 'get', { runId: 'r' }, 'maxWait')).toBe(true);
+			expect(shown(1.1, 'run', 'get', { runId: 'r', options: { summaryOnly: false } }, 'maxWait')).toBe(true);
+			expect(shown(1.1, 'run', 'get', { runId: 'r', options: { summaryOnly: true } }, 'maxWait')).toBe(false);
+			expect(shown(1, 'run', 'get', { runId: 'r' }, 'maxWait')).toBe(false);
+			expect(shown(1, 'run', 'get', { runId: 'r' }, 'summaryOnly')).toBe(true);
+		});
 	});
 
 	it('the node is versioned [1, 1.1] and new nodes get 1.1', () => {
@@ -208,7 +252,7 @@ describe('version 1.1 run fields', () => {
 		it('puts the batch folder URL and generation_stats on every child, from the first destination that has a link', async () => {
 			const api = await startApi(routerFor(batch, children));
 
-			const items = (await through(api, s2dConnected({ waitForCompletion: true }, V11))).json('SourceToDocs');
+			const items = (await through(api, s2dConnected({ options: { waitForCompletion: true } }, V11))).json('SourceToDocs');
 
 			expect(items).toHaveLength(2);
 			for (const item of items) {
@@ -219,7 +263,7 @@ describe('version 1.1 run fields', () => {
 		it('an empty batch is itself the item, and generation_stats says why it has 0 files', async () => {
 			const api = await startApi(routerFor({ ...batch, file_count: 0 }, []));
 
-			const items = (await through(api, s2dConnected({ waitForCompletion: true }, V11))).json('SourceToDocs');
+			const items = (await through(api, s2dConnected({ options: { waitForCompletion: true } }, V11))).json('SourceToDocs');
 
 			expect(items).toHaveLength(1);
 			expect(items[0]).toMatchObject({ run_id: BATCH_ID, file_count: 0, folder_url: FOLDER, generation_stats: { skipped_null: 3 } });
@@ -236,7 +280,7 @@ describe('version 1.1 run fields', () => {
 		it('a v1 batch child has neither', async () => {
 			const api = await startApi(routerFor(batch, children));
 
-			const items = (await through(api, s2dConnected({ waitForCompletion: true }))).json('SourceToDocs');
+			const items = (await through(api, s2dConnected({ options: { waitForCompletion: true } }))).json('SourceToDocs');
 
 			expect(items).toHaveLength(2);
 			expect(items[0]).not.toHaveProperty('folder_url');
@@ -291,19 +335,19 @@ describe('version 1.1 Output', () => {
 		const children = [runPayload({ id: 'child-1', split_key: 'Acme' }), runPayload({ id: 'child-2', split_key: 'Globex' })];
 		const api = await startApi(routerFor({ id: BATCH_ID, kind: 'batch', status: 'succeeded', file_count: 2 }, children));
 
-		const picked = (await through(api, s2dConnected({ waitForCompletion: true, output: 'selected', outputFields: ['run_id', 'batch_run_id'] }, V11))).json('SourceToDocs');
-		const unpicked = (await through(api, s2dConnected({ waitForCompletion: true, output: 'selected', outputFields: ['run_id'] }, V11))).json('SourceToDocs');
+		const picked = (await through(api, s2dConnected({ options: { waitForCompletion: true }, output: 'selected', outputFields: ['run_id', 'batch_run_id'] }, V11))).json('SourceToDocs');
+		const unpicked = (await through(api, s2dConnected({ options: { waitForCompletion: true }, output: 'selected', outputFields: ['run_id'] }, V11))).json('SourceToDocs');
 
 		expect(picked).toEqual([{ run_id: 'child-1', batch_run_id: BATCH_ID }, { run_id: 'child-2', batch_run_id: BATCH_ID }]);
 		expect(unpicked).toEqual([{ run_id: 'child-1', batch_run_id: BATCH_ID }, { run_id: 'child-2', batch_run_id: BATCH_ID }]);
-		const onlyStatus = (await through(api, s2dConnected({ waitForCompletion: true, output: 'selected', outputFields: ['status'] }, V11))).json('SourceToDocs');
+		const onlyStatus = (await through(api, s2dConnected({ options: { waitForCompletion: true }, output: 'selected', outputFields: ['status'] }, V11))).json('SourceToDocs');
 		expect(onlyStatus).toEqual([{ status: 'pending', run_id: 'child-1', batch_run_id: BATCH_ID }, { status: 'pending', run_id: 'child-2', batch_run_id: BATCH_ID }]);
 	});
 
 	it('a timed-out item keeps run_id whichever fields are selected, and a single run has no batch_run_id', async () => {
 		const api = await startApi((request) => (request.method === 'POST' ? ok({ run: runPayload({ status: 'pending' }) }, 201) : ok({ run: runPayload({ status: 'processing' }) })));
 
-		const waited = await through(api, s2dConnected({ output: 'selected', outputFields: ['file_url'], waitForCompletion: true, maxWait: 2, pollEvery: 2 }, V11));
+		const waited = await through(api, s2dConnected({ output: 'selected', outputFields: ['file_url'], options: { waitForCompletion: true, maxWait: 2, pollEvery: 2 } }, V11));
 
 		const item = waited.json('SourceToDocs')[0];
 		expect(item).toMatchObject({ run_id: RUN_ID, timed_out: true });
@@ -322,7 +366,7 @@ describe('version 1.1 Output', () => {
 
 	it('timed_out, idempotent_replay and the Map Columns notes survive Selected Fields', async () => {
 		const api = await startApi((request) => (request.method === 'POST' ? ok({ run: runPayload({ status: 'pending' }) }, 201) : ok({ run: runPayload({ status: 'processing' }) })));
-		const waited = await through(api, s2dConnected({ output: 'selected', outputFields: ['status'], waitForCompletion: true, maxWait: 2, pollEvery: 2 }, V11));
+		const waited = await through(api, s2dConnected({ output: 'selected', outputFields: ['status'], options: { waitForCompletion: true, maxWait: 2, pollEvery: 2 } }, V11));
 		expect(waited.json('SourceToDocs')[0]).toEqual({ status: 'processing', run_id: RUN_ID, timed_out: true });
 
 		const mapped = await through(

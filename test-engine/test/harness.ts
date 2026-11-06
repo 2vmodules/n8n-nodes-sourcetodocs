@@ -612,12 +612,29 @@ function makeAdditionalData(
 }
 
 /**
+ * The optional fields of Document → Generate and Run → Get live in the `options` collection. n8n's
+ * `Workflow` constructor drops a top-level key that no longer matches a property, without an
+ * error, so a test that still sets one at the top level would run on the defaults and prove
+ * nothing. Refuse it loudly instead.
+ */
+export const OPTION_NAMES = ['distributionIds', 'waitForCompletion', 'maxWait', 'pollEvery', 'idempotencyKey', 'summaryOnly'] as const;
+
+export function assertOptionsMigrated(node: { name?: string; type: string; parameters: object }): void {
+	if (!node.type.startsWith(S2D_TYPE)) return;
+	const stray = OPTION_NAMES.filter((name) => name in node.parameters);
+	if (stray.length > 0) {
+		throw new Error(`${node.name ?? node.type} sets ${stray.join(', ')} at the top level; these belong under parameters.options`);
+	}
+}
+
+/**
  * Builds a real `Workflow` and runs it with `WorkflowExecute`. A literal parameter value that
  * n8n validates before the run makes this reject with `WorkflowHasIssuesError`; use an
  * expression when a test needs the node itself to see a bad value.
  */
 export async function runWorkflow(options: RunOptions): Promise<RunResult> {
 	const started = Date.now();
+	for (const node of options.nodes) assertOptionsMigrated(node);
 	const nodes: WorkflowTypes.INode[] = options.nodes.map((node, index) => ({
 		id: `node-${index}`,
 		typeVersion: 1,
@@ -720,6 +737,7 @@ export interface ToolRunResult {
  * every try. `makeHandleToolInvocation` is required by absolute path: n8n-core's exports do not list it.
  */
 export async function runAsTool(options: ToolRunOptions): Promise<ToolRunResult> {
+	assertOptionsMigrated(options.node);
 	const coreDir = resolvePath(require.resolve('n8n-core'), '..', 'execution-engine', 'node-execution-context');
 	const { makeHandleToolInvocation } = require(resolvePath(coreDir, 'utils', 'get-input-connection-data.js'));
 	const { SupplyDataContext } = require(resolvePath(coreDir, 'supply-data-context.js'));
@@ -1059,6 +1077,7 @@ const documentLocator = { __rl: true, mode: 'id', value: DOC_ID };
 
 /** The SourceToDocs node, Document → Generate, any parameters on top of "don't wait". */
 export function s2d(parameters: WorkflowTypes.INodeParameters, extra: Partial<WorkflowTypes.INode> = {}): TestNode {
+	const { options, ...rest } = parameters;
 	return {
 		name: 'SourceToDocs',
 		type: S2D_TYPE,
@@ -1067,8 +1086,11 @@ export function s2d(parameters: WorkflowTypes.INodeParameters, extra: Partial<Wo
 			resource: 'document',
 			operation: 'generate',
 			documentId: documentLocator,
-			waitForCompletion: false,
-			...parameters,
+			...rest,
+			options: {
+				...(rest.resource === undefined || rest.resource === 'document' ? { waitForCompletion: false } : {}),
+				...(options as WorkflowTypes.INodeParameters | undefined),
+			},
 		} as WorkflowTypes.INodeParameters,
 	};
 }

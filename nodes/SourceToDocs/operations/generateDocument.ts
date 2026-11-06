@@ -20,6 +20,8 @@ import {
 	type ParsedDataSetEntry,
 } from '../inlineData';
 import {
+	DEFAULT_MAX_WAIT_SECONDS,
+	DEFAULT_POLL_EVERY_SECONDS,
 	fetchRun,
 	fetchRunChildren,
 	flattenBatchResult,
@@ -267,11 +269,11 @@ async function buildRequestBody(
 	const distributionIds = assertIds(
 		node,
 		'Deliver To',
-		context.getNodeParameter('distributionIds', 0, []),
+		context.getNodeParameter('options.distributionIds', 0, []),
 	);
 	const idempotencyKey = idempotencyKeyFrom(
 		node,
-		context.getNodeParameter('idempotencyKey', 0, '', { skipValidation: true }),
+		context.getNodeParameter('options.idempotencyKey', 0, '', { skipValidation: true }),
 	);
 
 	// One read of the document serves both Unknown Fields and the split key check.
@@ -522,7 +524,11 @@ export async function executeDocumentGenerate(
 		'Document',
 		context.getNodeParameter('documentId', 0, undefined, { extractValue: true }),
 	);
-	const waitForCompletion = context.getNodeParameter('waitForCompletion', 0) as boolean;
+	const waitForCompletion = context.getNodeParameter(
+		'options.waitForCompletion',
+		0,
+		true,
+	) as boolean;
 	// Output (1.1+) or Simplify (v1), read before anything is sent: Selected Fields with nothing selected must not cost a run.
 	const output = readOutputChoice(context, 0);
 	const shape = (items: IDataObject[]): IDataObject[] => applyOutput(items, output);
@@ -533,8 +539,12 @@ export async function executeDocumentGenerate(
 	const waitOptions = waitForCompletion
 		? resolveWaitOptions(
 				node,
-				context.getNodeParameter('maxWait', 0, undefined, { skipValidation: true }),
-				context.getNodeParameter('pollEvery', 0, undefined, { skipValidation: true }),
+				context.getNodeParameter('options.maxWait', 0, DEFAULT_MAX_WAIT_SECONDS, {
+					skipValidation: true,
+				}),
+				context.getNodeParameter('options.pollEvery', 0, DEFAULT_POLL_EVERY_SECONDS, {
+					skipValidation: true,
+				}),
 			)
 		: resolveWaitOptions(node, undefined, undefined);
 

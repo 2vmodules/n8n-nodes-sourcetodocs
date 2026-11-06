@@ -55,7 +55,7 @@ function expectWording(error: ErrorCopy | undefined): ErrorCopy {
 }
 
 const errorOf = (result: Awaited<ReturnType<typeof run>>) => result.errorOf('SourceToDocs') as unknown as ErrorCopy | undefined;
-const waiting = { waitForCompletion: true, maxWait: 300, pollEvery: 5 };
+const waiting = { options: { waitForCompletion: true, maxWait: 300, pollEvery: 5 } };
 
 describe('the words of each way Generate stops', () => {
 	const batch = (children: unknown[], overrides: Record<string, unknown> = {}): Router => (request) =>
@@ -83,13 +83,13 @@ describe('the words of each way Generate stops', () => {
 	});
 
 	it.each([
-		['an Idempotency Key that is a list', s2dConnected({ idempotencyKey: '={{ [1] }}' }), "'Idempotency Key'"],
-		['a Max Wait that is not a number', s2dConnected({ waitForCompletion: true, maxWait: "={{ 'soon' }}" }), "'Max Wait (Seconds)'"],
+		['an Idempotency Key that is a list', s2dConnected({ options: { idempotencyKey: '={{ [1] }}' } }), "'Idempotency Key'"],
+		['a Max Wait that is not a number', s2dConnected({ options: { waitForCompletion: true, maxWait: "={{ 'soon' }}" } }), "'Max Wait (Seconds)'"],
 		['Rows that are not JSON', s2dJson([{ dataSetId: DS_ID, rows: '={{ "not json" }}' }]), "'Rows'"],
 		['an entry with no Data Set', s2dJson([{ dataSetId: '', rows: '[]' }]), "'Data Set'"],
 		['Map Columns with nothing mapped', s2dMapped({}), "'Map Columns'"],
 		['Map Columns with the mapped Data Set listed again', s2dMapped({ 'Client name': 'x' }, { additionalDataSets: { values: [{ dataSetId: DS_ID, rows: '[]' }] } }), "'Additional Data Sets'"],
-		['a Deliver To that is not a list', s2dConnected({ distributionIds: '={{ "x" }}' }), "'Deliver To'"],
+		['a Deliver To that is not a list', s2dConnected({ options: { distributionIds: '={{ "x" }}' } }), "'Deliver To'"],
 		['Selected Fields with nothing selected', s2dConnected({ output: 'selected', outputFields: [] }, {}), "'Fields'"],
 	])('%s names its parameter and sends nothing', async (_title, node, quoted) => {
 		const api = await startApi(defaultRouter());

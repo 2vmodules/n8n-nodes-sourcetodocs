@@ -120,9 +120,11 @@ template end to end: a CRM's rows become a document, with no mapping step.
    inline_column_unknown` naming it, rather than being silently removed. **Drop** reads the
    Document once before the run (one extra `GET`) to learn each Data Set's columns; **Refuse**
    sends the rows as given and does not read it.
-6. Leave **Deliver To** empty to use the Document's own distributions, or pick a subset.
-7. Leave **Wait For Completion** on (the default). **Max Wait** (300 s) and **Poll Every**
-   (5 s) control how long and how often the node polls before giving up; the bounds are in
+6. Open **Options** only when you need one of its fields. Leave **Deliver To** out to use the
+   Document's own distributions, or add it to pick a subset.
+7. Leave **Wait For Completion** on (the default; it is an option, so a node that never added it
+   waits). **Max Wait** (300 s) and **Poll Every** (5 s), also under **Options**, control how
+   long and how often the node polls before giving up; the bounds are in
    [Wait or poll](#wait-or-poll).
 8. Run it. The output item carries `file_url` and `file_name` at the top level — hand those
    straight to a Slack, email or HTTP node. **Output** (default **Simplified**) keeps the
@@ -135,12 +137,12 @@ nothing and says nothing. To run it anyway, turn **Always Output Data** on in th
 the node before SourceToDocs: it then runs once, on one empty item (in JSON mode that item
 is sent as one blank row, which the output reports as `empty_rows: 1`). Second, **every
 parameter except the Map Columns cells reads the first input item only**: a Document, Deliver
-To or Idempotency Key written as an expression such as `{{ $json.doc }}` takes item 0's value
+To or Idempotency Key (under Options) written as an expression such as `{{ $json.doc }}` takes item 0's value
 for the whole run, because Generate makes one request however many items arrive. Only the
 Map Columns cells are resolved once per item. (The read operations, Project, Document and Run,
 do run once per item.)
 
-The node's parameters, in order, for reference:
+The node's parameters, in order, for reference. Options is last and holds the optional fields, listed under it:
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -154,15 +156,18 @@ The node's parameters, in order, for reference:
 | Columns | resource mapper | Map Each Column Manually | shown for `mapped` only; see [below](#map-columns-instead-of-writing-json) |
 | Additional Data Sets | collection | empty | shown for `mapped` only; JSON rows for other Data Sets |
 | Unknown Fields | options | `Drop` | shown for `workflow` and `mapped`; `drop` or `refuse` |
-| Deliver To | multi-select | none | the Document's enabled Distributions; one that was deleted or disabled is ignored by the API, the others still get the file |
-| Wait For Completion | boolean | `true` | |
-| Max Wait | number (s) | `300`, at least Poll Every, at most `3600` | shown while waiting |
-| Poll Every | number (s) | `5`, at least `2`, at most `3600` | shown while waiting |
-| Idempotency Key | string | empty | empty: the node sends its own key; see [Retry On Fail](#retry-on-fail). An expression may give text or a number (a number is used as its text); one that gives nothing, or anything else, stops the node before it sends anything |
 | Output | options | `Simplified` | node version 1.1 and later: `Simplified`, `Raw` or `Selected Fields` |
 | Fields | multi-select | `run_id`, `status`, `file_url` | shown for `Selected Fields` only; `run_id` (and `batch_run_id` on a batch's files) is always kept, so a timed-out item can still be polled |
 | Simplify | boolean | `true` | node version 1 only; off keeps the full run object under `run` |
+| Options | collection | empty | the optional fields below; each is added with **Add Option** and, left out, keeps its default |
+| → Deliver To | multi-select | none | the Document's enabled Distributions; one that was deleted or disabled is ignored by the API, the others still get the file |
+| → Idempotency Key | string | empty | empty: the node sends its own key; see [Retry On Fail](#retry-on-fail). An expression may give text or a number (a number is used as its text); one that gives nothing, or anything else, stops the node before it sends anything |
+| → Max Wait | number (s) | `300`, at least Poll Every, at most `3600` | hidden while Wait For Completion is off |
+| → Poll Every | number (s) | `5`, at least `2`, at most `3600` | hidden while Wait For Completion is off |
+| → Wait For Completion | boolean | `true` | |
 
+
+Run → Get takes a Run ID and the same Output (or Simplify, at version 1); its own **Options** collection holds **Summary Only** and, from node version 1.1, **Max Wait**.
 
 Every id the node puts in a URL or in the request — the Document in any of its three modes, the
 Project, the Run, a Data Set, a Deliver To entry — must be a UUID. Anything else, an expression
@@ -364,7 +369,7 @@ run delivering through one anyway records a failed delivery rather than a link.
 
 ### Wait or poll
 
-**Wait For Completion** (the default) is the simple path: the node polls `GET /runs/{run}`
+**Options → Wait For Completion** (the default) is the simple path: the node polls `GET /runs/{run}`
 itself and the next node only ever sees a finished result. It does this by holding the
 workflow's execution open for as long as the run takes — for n8n running in **queue mode**,
 that is a worker occupied for the whole wait, not just the request.
@@ -375,9 +380,9 @@ tying up a worker is the wrong trade: the node then returns as soon as the run i
 schedule, from a webhook your own system calls, or from a loop with a Wait node in between —
 until `status` is one of `succeeded`, `failed`, `partial_success` or `cancelled`. For a split
 Document, the same **Run → Get** on the batch's own id lists every child file once it is done
-(or pass **Summary Only** to get the batch's own counters as a single item instead).
+(or add **Options → Summary Only** to get the batch's own counters as a single item instead).
 
-A run that times out inside **Wait For Completion** is not an error either: the item comes back
+A run that times out inside **Options → Wait For Completion** is not an error either: the item comes back
 with `timed_out: true` and the run's id, ready for the same **Run → Get** poll. That holds even
 when the last status check before Max Wait ran out meets a `429`, a `5xx`, a timeout or a dropped
 connection: the item is `timed_out`, with the run as the node last saw it.
@@ -405,8 +410,8 @@ as an error. An error that is not transient (a `404`, say) is an error, and any 
 a run exists — a poll that could not be retried, or the run itself ending `failed` — names that
 run's id in its own message.
 
-**Run → Get** waits only to read a batch's list of files, and it has its own **Max Wait** (300 s
-by default) for that read: the same bounds as Generate's, never under 5 s (the default Poll Every)
+**Run → Get** waits only to read a batch's list of files, and it has its own **Options → Max Wait** (300 s
+by default, node version 1.1 and later) for that read: the same bounds as Generate's, never under 5 s (the default Poll Every)
 and at most `3600`. A single run and a Summary Only batch are read once and do not wait.
 
 A `429` with the code `authentication_rate_limited` is different from the per-token limit: the
@@ -423,7 +428,7 @@ its interval.
 Turn on n8n's **Retry On Fail** setting and a retry **resumes the same run** instead of starting
 another:
 
-- **The automatic key.** When **Idempotency Key** is empty, the node sends its own: it is the
+- **The automatic key.** When **Options → Idempotency Key** is left out or empty, the node sends its own: it is the
   same on every try of one run of the node, and different for each run of the node in an
   execution and for each execution. A key you type is sent as it is.
 - **As an AI tool the key comes from the request, on n8n's in-process tool path only.** That
@@ -567,7 +572,7 @@ button (`$fromAI`) is chosen by the model, and n8n checks only the key name, so:
   point the run at any Document of the workspace (an Idempotency Key, see below, can also
   return another call's run). The node refuses a value that is not a UUID,
   but any real one passes.
-- **Do not expose Deliver To** to the model: it decides where files are sent.
+- **Do not expose Options → Deliver To** to the model: it decides where files are sent.
 - **Put n8n's human review in front of Generate.** From n8n 2.6, a tool's connection to the AI
   Agent can carry an "Add human review step" that holds the call until a person approves it; use
   it for Generate, which creates documents and counts against the plan.
@@ -582,7 +587,7 @@ button (`$fromAI`) is chosen by the model, and n8n checks only the key name, so:
   (with its file links). Scope it to the call, so the model cannot name a key from another
   execution: `{{ $execution.id }}:{{ $fromAI('key', 'A short label for this document', 'string') }}`.
 - Generate **waits for the run** (up to Max Wait, 300 s by default) inside one tool call. Turn
-  Wait For Completion off if the agent should not block, and let it poll with Run → Get.
+  Options → Wait For Completion off if the agent should not block, and let it poll with Run → Get.
 
 ### Limits
 
@@ -613,6 +618,10 @@ button (`$fromAI`) is chosen by the model, and n8n checks only the key name, so:
 
 ## Version history
 
+- **2.0.0** — Generate's optional fields (Deliver To, Wait For Completion, Max Wait, Poll Every,
+  Idempotency Key) and Run → Get's (Summary Only, Max Wait) moved into an **Options**
+  collection, in both node versions. A node saved with 1.0.0 loses the values it held for them and
+  runs on the defaults, so set them again under **Options**.
 - **1.0.0** — the first public release. The package ships node version 1 and node version 1.1:
   a node you add is 1.1, and a workflow that already holds the node on version 1 keeps its
   Simplify switch and its output items (see

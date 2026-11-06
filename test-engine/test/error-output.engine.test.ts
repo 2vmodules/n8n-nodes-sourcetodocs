@@ -58,7 +58,7 @@ async function run(api: FakeApi, node: TestNode, items: unknown[] = [{ json: {} 
 	});
 }
 
-const waiting = { waitForCompletion: true, maxWait: 300, pollEvery: 5 };
+const waiting = { options: { waitForCompletion: true, maxWait: 300, pollEvery: 5 } };
 const pairedAll = (n: number) => Array.from({ length: n }, (_v, item) => ({ item }));
 
 /** The output an error item lands on, and the branch that must not have run. */
