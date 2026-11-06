@@ -3,13 +3,18 @@ import type { ILoadOptionsFunctions, INodePropertyOptions } from 'n8n-workflow';
 import { sourceToDocsApiRequest } from '../transport';
 import type { PublicProjectData } from '../types';
 import { currentDocument } from './document';
+import { projectLabels } from './projectLabels';
 
-/** `GET /projects`, for the Project dropdown. */
+/** `GET /projects`, for the Project dropdown. Projects that share a name also show the start of their id. */
 export async function getProjects(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 	const { projects } = (await sourceToDocsApiRequest.call(this, 'GET', '/projects')) as {
 		projects: PublicProjectData[];
 	};
-	return projects.map((project) => ({ name: project.name, value: project.id }));
+	const labels = projectLabels(projects);
+	return projects.map((project) => ({
+		name: labels.get(project.id) ?? project.name,
+		value: project.id,
+	}));
 }
 
 /**

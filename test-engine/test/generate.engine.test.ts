@@ -391,3 +391,24 @@ describe('Generate, pairing and Simplify', () => {
 		expect(result.json('SourceToDocs')[0].run).toEqual(runPayload({ status: 'succeeded' }));
 	});
 });
+
+describe('Options → Project is never sent', () => {
+	const PROJECT = 'a0000000-0000-4000-8000-000000000001';
+
+	it('a Generate run with it set sends the same requests as one without', async () => {
+		const without = await startApi();
+		const withProject = await startApi();
+		const dataSets = [{ dataSetId: DS_ID, rows: rows([{ 'Client name': 'A1' }]) }];
+
+		await generate(without, s2dJson(dataSets, { options: { distributionIds: [], idempotencyKey: 'k' } }));
+		await generate(withProject, s2dJson(dataSets, { options: { projectId: PROJECT, distributionIds: [], idempotencyKey: 'k' } }));
+
+		const shape = (api: FakeApi) => api.requests.map((r) => ({ method: r.method, path: r.path, body: r.body }));
+		expect(shape(withProject)).toEqual(shape(without));
+		expect(api_has(withProject, PROJECT)).toBe(false);
+	});
+});
+
+function api_has(api: FakeApi, text: string): boolean {
+	return api.requests.some((r) => JSON.stringify(r).includes(text));
+}

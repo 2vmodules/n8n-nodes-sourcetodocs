@@ -79,6 +79,27 @@ describe('getProjects', () => {
 		expect(api.requests[0]).toMatchObject({ method: 'GET', path: `${API_PATH}/projects` });
 		expect(api.requests[0].headers.authorization).toBe(`Bearer ${TOKEN}`);
 	});
+
+	it('adds the first four characters of the id to a name that two projects share, and only to those', async () => {
+		const api = await startApi(() =>
+			ok({
+				projects: [
+					{ id: '3f2a0000-0000-4000-8000-000000000001', name: 'Sales', timezone: null },
+					{ id: '9c1e0000-0000-4000-8000-000000000002', name: 'Sales', timezone: null },
+					{ id: 'a0000000-0000-4000-8000-000000000003', name: 'Marketing', timezone: null },
+				],
+			}),
+		);
+
+		const options = await callMethod<Option[]>({
+			kind: 'loadOptions',
+			name: 'getProjects',
+			baseUrl: api.baseUrl,
+			parameters: { resource: 'document', operation: 'getMany' },
+		});
+
+		expect(options.map((option) => option.name)).toEqual(['Sales · 3f2a', 'Sales · 9c1e', 'Marketing']);
+	});
 });
 
 describe('getDataSets', () => {
@@ -263,6 +284,83 @@ describe('searchDocuments', () => {
 		const { results } = await search(api, '');
 
 		expect(results.map((r) => r.value)).toEqual(['d-1', 'd-2']);
+	});
+
+	describe('with Options → Project and projects that share a name', () => {
+		const SALES_A = '3f2a0000-0000-4000-8000-000000000001';
+		const SALES_B = '9c1e0000-0000-4000-8000-000000000002';
+		const rows = [
+			{ id: 'd-1', project_id: SALES_A, project_name: 'Sales', name: 'Q3 Report' },
+			{ id: 'd-2', project_id: SALES_B, project_name: 'Sales', name: 'Q4 Report' },
+			{ id: 'd-3', project_id: 'p-3', project_name: 'Billing', name: 'Invoice' },
+		];
+		const router: Router = (request) =>
+			request.path === `${API_PATH}/documents` ? ok({ documents: rows }) : failure(404, 'not_found', 'Resource not found.');
+		const within = (api: FakeApi, projectId: unknown, filter?: string) =>
+			callMethod<{ results: Array<{ name: string; value: string }> }>({
+				kind: 'listSearch',
+				name: 'searchDocuments',
+				baseUrl: api.baseUrl,
+				filter,
+				parameters: { ...generating, options: { projectId } } as never,
+			});
+
+		it('keeps every document when no project is set, an empty one is set, or an expression gave a non-string', async () => {
+			const api = await startApi(router);
+
+			expect((await search(api, '')).results).toHaveLength(3);
+			expect((await within(api, '')).results).toHaveLength(3);
+			expect((await within(api, 42)).results).toHaveLength(3);
+		});
+
+		it('keeps only the documents of that project, not those of a project with the same name', async () => {
+			const api = await startApi(router);
+
+			expect((await within(api, SALES_A)).results.map((r) => r.value)).toEqual(['d-1']);
+			expect((await within(api, SALES_B)).results.map((r) => r.value)).toEqual(['d-2']);
+			expect((await within(api, 'p-3')).results.map((r) => r.value)).toEqual(['d-3']);
+		});
+
+		it('sends nothing but the workspace list, whatever the project is', async () => {
+			const api = await startApi(router);
+
+			await within(api, SALES_A);
+
+			expect(api.requests.map((request) => `${request.method} ${request.path}`)).toEqual([`GET ${API_PATH}/documents`]);
+		});
+
+		it('labels a document of a shared name with the id start, and leaves a unique name alone', async () => {
+			const api = await startApi(router);
+
+			expect((await within(api, '')).results.map((r) => r.name)).toEqual([
+				'Sales · 3f2a / Q3 Report',
+				'Sales · 9c1e / Q4 Report',
+				'Billing / Invoice',
+			]);
+		});
+
+		it('keeps the suffix when the list is narrowed to one of the same-named projects', async () => {
+			const api = await startApi(router);
+
+			expect((await within(api, SALES_B)).results.map((r) => r.name)).toEqual(['Sales · 9c1e / Q4 Report']);
+		});
+
+		it('matches the whole label, as shown: Project / Document, the project alone, the document alone, the suffix', async () => {
+			const api = await startApi(router);
+
+			expect((await within(api, '', 'billing / invoice')).results.map((r) => r.value)).toEqual(['d-3']);
+			expect((await within(api, '', 'SALES')).results.map((r) => r.value)).toEqual(['d-1', 'd-2']);
+			expect((await within(api, '', 'q4')).results.map((r) => r.value)).toEqual(['d-2']);
+			expect((await within(api, '', 'sales · 3f2a / q3')).results.map((r) => r.value)).toEqual(['d-1']);
+			expect((await within(api, '', 'nothing')).results).toEqual([]);
+		});
+
+		it('combines the project and the text filter', async () => {
+			const api = await startApi(router);
+
+			expect((await within(api, SALES_A, 'report')).results.map((r) => r.value)).toEqual(['d-1']);
+			expect((await within(api, SALES_A, 'q4')).results).toEqual([]);
+		});
 	});
 });
 

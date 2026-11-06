@@ -99,7 +99,7 @@ describe('both versions keep their other parameters, and the optional fields liv
 		[
 			'Document → Get',
 			{ resource: 'document', operation: 'get', documentId: doc },
-			{ resource: 'document', operation: 'get', documentId: doc },
+			{ resource: 'document', operation: 'get', documentId: doc, options: {} },
 		],
 	])('version 1, %s: the stored parameters hold an empty Options and no output, limit or returnAll', (_name, stored, expected) => {
 		expect(storedParameters(1, stored as INodeParameters)).toEqual(expected);
@@ -113,7 +113,7 @@ describe('both versions keep their other parameters, and the optional fields liv
 			resource: 'document', operation: 'generate', documentId: doc, rowsFrom: 'connected', options: {}, output: 'simplified',
 		});
 		expect(storedParameters(1.1, { resource: 'document', operation: 'get', documentId: doc })).toEqual({
-			resource: 'document', operation: 'get', documentId: doc, output: 'simplified',
+			resource: 'document', operation: 'get', documentId: doc, options: {}, output: 'simplified',
 		});
 		expect(storedParameters(1.1, { resource: 'document', operation: 'get', documentId: doc, output: 'selected' })).toMatchObject({ output: 'selected', outputFields: ['id', 'name', 'data_sets'] });
 		expect(storedParameters(1.1, { resource: 'project', operation: 'getMany' })).toEqual({ resource: 'project', operation: 'getMany', returnAll: true });
@@ -140,6 +140,25 @@ describe('both versions keep their other parameters, and the optional fields liv
 			expect(stored).not.toHaveProperty('projectId');
 		}
 		expect(storedParameters(version, { resource: 'document', operation: 'getMany', projectId: 'p' })).toHaveProperty('projectId', 'p');
+	});
+
+	it.each([1, 1.1])('version %s: Project is an item of Get\'s and Generate\'s Options, not a top-level parameter, and Get Many still requires its own', (version) => {
+		const topLevel = (operation: string) => 'projectId' in storedParameters(version, { resource: 'document', operation, projectId: 'p', documentId: doc });
+		expect(topLevel('get')).toBe(false);
+		expect(topLevel('generate')).toBe(false);
+		expect(topLevel('getMany')).toBe(true);
+		const required = s2dDescription.properties.find((p) => p.name === 'projectId');
+		expect(required?.required).toBe(true);
+		for (const operation of ['get', 'generate']) {
+			const collection = s2dDescription.properties.find((p) => p.name === 'options' && p.displayOptions?.show?.operation?.[0] === operation && p.displayOptions?.show?.resource?.[0] === 'document');
+			const item = (collection?.options as Array<{ name: string; type: string; typeOptions?: unknown; default?: unknown }>).find((o) => o.name === 'projectId');
+			expect(item, operation).toMatchObject({ type: 'options', typeOptions: { loadOptionsMethod: 'getProjects' }, default: '' });
+		}
+	});
+
+	it('the Document locator reloads when Options → Project changes', () => {
+		const locator = s2dDescription.properties.find((p) => p.name === 'documentId');
+		expect(locator?.typeOptions?.loadOptionsDependsOn).toEqual(['options.projectId']);
 	});
 
 	describe('inside the Options collection', () => {

@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { emit, OPTION_NAMES, runAsTool, runTemplate, runWorkflow, s2d, s2dConnected, s2dDescription, type TestNode } from './harness';
+import { assertOptionsMigrated, emit, OPTION_NAMES, runAsTool, runTemplate, runWorkflow, s2d, s2dConnected, s2dDescription, type TestNode } from './harness';
 
 const run = (node: TestNode) => runWorkflow({ baseUrl: 'http://127.0.0.1:1', nodes: [emit([{ json: {} }]), node], connections: [['Emit', 'SourceToDocs']] });
 
@@ -14,7 +14,8 @@ it('guards every name of the Options collections, and no others', () => {
 		.filter((property) => property.name === 'options')
 		.flatMap((property) => (property.options as Array<{ name: string }>).map((item) => item.name));
 
-	expect([...OPTION_NAMES].sort()).toEqual([...new Set(inCollections)].sort());
+	// Project is an option of Get and Generate, and a top-level parameter of Get Many: guarded by operation.
+	expect([...OPTION_NAMES, 'projectId'].sort()).toEqual([...new Set(inCollections)].sort());
 });
 
 describe('s2d', () => {
@@ -46,6 +47,28 @@ describe.each([...OPTION_NAMES])('a test that sets %s at the top level', (name) 
 		await expect(
 			runTemplate('one-invoice-per-customer.json', { baseUrl: 'http://127.0.0.1:1', fixtures: {}, pick: (params) => ({ ...params, [name]: value }) }),
 		).rejects.toThrow(`${name} at the top level`);
+	});
+});
+
+describe('a test that sets Project at the top level', () => {
+	it.each([
+		['Generate', {}],
+		['Get', { operation: 'get' }],
+	])('is refused for %s', async (_name, extra) => {
+		await expect(run(s2dConnected({ projectId: 'p', ...extra }))).rejects.toThrow('projectId at the top level');
+	});
+
+	it('is refused when no resource or operation is named, which means Document → Generate', async () => {
+		const node: TestNode = { name: 'SourceToDocs', type: '@twovmodules/n8n-nodes-sourcetodocs.sourceToDocs', parameters: { projectId: 'p' } };
+		await expect(run(node)).rejects.toThrow('projectId at the top level');
+	});
+
+	it('is allowed for Document → Get Many, which requires it', () => {
+		expect(() => assertOptionsMigrated(s2d({ resource: 'document', operation: 'getMany', projectId: 'p' }))).not.toThrow();
+	});
+
+	it('is accepted inside Options', () => {
+		expect(() => assertOptionsMigrated(s2dConnected({ options: { projectId: 'p' } }))).not.toThrow();
 	});
 });
 

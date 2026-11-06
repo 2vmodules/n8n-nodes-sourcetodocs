@@ -22,15 +22,20 @@ All notable changes to `@twovmodules/n8n-nodes-sourcetodocs` are recorded here. 
   `Project / Document` and searches both names, so Document → Get and Generate no longer have a
   **Project** filter. A workflow that had a Project set loses it, with no other effect. Document →
   Get Many still takes a Project. This needs a SourceToDocs backend that lists the workspace's
-  documents.
+  documents. To narrow the list to one project, add **Project** under **Options** on Document → Get
+  or Generate; the choice only filters the list and is never sent. Projects that share a name show
+  the first four characters of their ID after the name, such as `Sales · 3f2a`.
 - **Simplified output keeps ten fields.** At node version 1.1, Simplified on Generate and Run → Get
   returns `run_id`, `status`, `file_url`, `file_name`, `split_key`, `file_count`, `deliveries`,
   `warnings`, `error_code` and `error_message` (a batch's files also keep `batch_run_id`). `kind`,
   `page_count`, `progress`, `folder_url`, `generation_stats`, `document_id` and the timestamps are
-  in Raw and Selected Fields. Node version 1's output is unchanged.
+  in Raw and Selected Fields. Node version 1's output is unchanged. A node saved with 1.0.0 at
+  version 1.1 no longer gets `kind`, `progress`, `folder_url`, `page_count` or `generation_stats`
+  under Simplified, and an expression that reads one of them gets nothing: set Output to Raw.
 - **Document → Get has an Output option** (node version 1.1): Simplified, the default, Raw and
   Selected Fields. Simplified turns a Data Set's columns into a list of names and leaves out their
-  `choices`, so use Raw for those.
+  `choices`. A Document → Get saved with 1.0.0 at version 1.1 now returns Simplified instead of the
+  full document, so an expression such as `data_sets[0].columns[0].name` changes: set Output to Raw.
 - **A hint warns that Generate starts one run for all input items.** It shows before execution when
   Rows Come From is Connected Data Sources and more than one item arrives, and points to Loop Over
   Items for one document per item.

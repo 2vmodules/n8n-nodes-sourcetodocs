@@ -32,7 +32,7 @@ panel once the node is verified.
 | --- | --- | --- |
 | Project | Get Many | List every project in the workspace |
 | Document | Get Many | List the documents of a project |
-| Document | Get | Get a document: its Data Sets (with column names), its split configuration and its Distributions |
+| Document | Get | Get a document: its Data Sets (with column names), whether it splits (Raw has its full split configuration) and its Distributions |
 | Document | Generate | Start a run — from the Document's connected sources, or from rows sent in this workflow — and return the produced file's link |
 | Run | Get | Get a run's status, its file and its deliveries; a batch also lists its children unless Summary Only is on |
 
@@ -97,7 +97,8 @@ template end to end: a CRM's rows become a document, with no mapping step.
 2. Add the **SourceToDocs** node, credential attached, **Resource: Document**,
    **Operation: Generate**.
 3. Pick the **Document** — From List (every document of the workspace, shown as
-   `Project / Document`, searchable by either name), or paste the document's URL from the app
+   `Project / Document`, searchable by either name; **Options → Project** narrows it to one project),
+   or paste the document's URL from the app
    (`.../documents/show/<id>`), or its ID directly.
 4. Set **Rows Come From** to **This Workflow — JSON**. The **Data Sets** collection appears, already
    holding one entry with **Rows** pre-filled:
@@ -168,11 +169,14 @@ The node's parameters, in order, for reference. Options is last and holds the op
 | → Idempotency Key | string | empty | empty: the node sends its own key; see [Retry On Fail](#retry-on-fail). An expression may give text or a number (a number is used as its text); one that gives nothing, or anything else, stops the node before it sends anything |
 | → Max Wait | number (s) | `300`, at least Poll Every, at most `3600` | hidden while Wait for Completion is off |
 | → Poll Every | number (s) | `5`, at least `2`, at most `3600` | hidden while Wait for Completion is off |
+| → Project | options | none | narrows the Document list above to one project; never sent to the API |
 | → Unknown Fields | options | `Drop` | shown for `workflow` and `mapped`; `drop` or `refuse` |
 | → Wait for Completion | boolean | `true` | |
 
 
 Run → Get takes a Run ID and the same Output (or Simplify, at version 1); its own **Options** collection holds **Summary Only** and, from node version 1.1, **Max Wait**.
+
+Document → Get has an **Options** collection too, holding only **Project**, which narrows the Document list as it does on Generate. Projects that share a name show the first four characters of their ID after the name (`Sales · 3f2a`), in the Project list and in the document names (`Sales · 3f2a / Q3 Report`). Typing in the Document list matches the whole name as shown, so `Sales`, `Q3` and `Sales / Q3` all find it.
 
 Document → Get has an **Output** of its own from node version 1.1, with **Fields** offering the document's own keys (`id`, `project_id`, `project_name`, `name`, `type`, `split_enabled`, `generate_pdf`, `created_at`, `updated_at`, `split`, `data_sets`, `distributions`; default `id`, `name`, `data_sets`, and `id` always stays). Version 1 returns the raw document.
 
@@ -651,8 +655,8 @@ Whatever you hand to the model with n8n's "let the model define this parameter" 
   Idempotency Key, Unknown Fields, Additional Data Sets) and Run → Get's (Summary Only, Max Wait)
   moved into an **Options** collection, in both node versions. A node saved with 1.0.0 loses the
   values it held for them and runs on the defaults, so set them again under **Options**. The
-  Document picker lists the whole workspace and Document → Get and Generate lose their Project
-  filter; Simplified output keeps ten fields; Document → Get gains an **Output** option; and a hint
+  Document picker lists the whole workspace, and Document → Get and Generate's Project filter moves
+  into **Options**; Simplified output keeps ten fields; Document → Get gains an **Output** option; and a hint
   says Generate starts one run for all input items.
 - **1.0.0** — the first public release. The package ships node version 1 and node version 1.1:
   a node you add is 1.1, and a workflow that already holds the node on version 1 keeps its

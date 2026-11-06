@@ -59,8 +59,6 @@ export interface OutputProfile {
 	hasLegacySimplify: boolean;
 	/** One item as Simplified leaves it. */
 	simplify: (item: IDataObject) => IDataObject;
-	/** The noun for error texts. */
-	noun: string;
 }
 
 /** The ten fields Simplified keeps on a flattened run, most used first. */
@@ -150,7 +148,6 @@ export const RUN_OUTPUT: OutputProfile = {
 	alwaysKept: ['run_id', 'batch_run_id'],
 	hasLegacySimplify: true,
 	simplify: simplifiedRun,
-	noun: 'run',
 };
 
 export const DOCUMENT_OUTPUT: OutputProfile = {
@@ -159,7 +156,6 @@ export const DOCUMENT_OUTPUT: OutputProfile = {
 	alwaysKept: ['id'],
 	hasLegacySimplify: false,
 	simplify: simplifiedDocument,
-	noun: 'document',
 };
 
 function fieldsFrom(raw: unknown): string[] {

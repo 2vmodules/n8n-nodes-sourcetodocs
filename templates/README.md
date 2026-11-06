@@ -3,7 +3,10 @@
 Three workflows for the [n8n templates catalogue](https://n8n.io/workflows/), each importable
 as is. After import: add a **SourceToDocs API** credential to the SourceToDocs node, then pick
 your own Document and Data Set from its dropdowns (and your own credentials on the
-other service nodes) — nothing else needs changing.
+other service nodes) — nothing else needs changing. The Document list shows every document of the
+workspace as `Project / Document`; with many projects, add **Options → Project** to the SourceToDocs
+node to narrow it to one (projects that share a name show the first four characters of their ID,
+such as `Sales · 3f2a`).
 
 Each JSON file below is one submission. The **Title**, **Description** and **Category** text is
 what to paste into the catalogue submission form for that workflow.

@@ -627,6 +627,20 @@ describe.concurrent('The AI tool variant, invoked in process', () => {
 		expect(outcomes[0]).not.toHaveProperty('response', expect.stringContaining('idempotent_replay'));
 		expect(outcomes[1]).toHaveProperty('response', expect.stringContaining('"idempotent_replay":true'));
 	});
+
+	it("fills an option from the model's call: Idempotency Key as $fromAI is sent as the key", async () => {
+		const fake = backend({ status: 'succeeded' });
+		const api = await startApi(fake.router);
+
+		const { outcomes } = await runAsTool({
+			baseUrl: api.baseUrl,
+			node: toolNode({ options: { idempotencyKey: "={{ $fromAI('key') }}" } }),
+			calls: [{ client: 'A1', key: 'model-chosen-key' }],
+		});
+
+		expect(outcomes).toEqual([{ response: expect.stringContaining('"succeeded"') }]);
+		expect(keysOf(api)).toEqual(['model-chosen-key']);
+	});
 });
 
 describe.concurrent('An automatic key adopts only a recent run', () => {

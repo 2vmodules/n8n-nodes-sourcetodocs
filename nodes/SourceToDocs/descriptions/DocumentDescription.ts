@@ -29,6 +29,19 @@ const dataSetEntryFields: INodeProperties[] = [
 	},
 ];
 
+/** Options → Project: narrows the Document list to one project; the API never receives it. */
+const projectFilterOption: INodeProperties = {
+	displayName: 'Project Name or ID',
+	name: 'projectId',
+	type: 'options',
+	typeOptions: {
+		loadOptionsMethod: 'getProjects',
+	},
+	default: '',
+	description:
+		'Narrows the Document list above to one project, and is never sent to the API. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+};
+
 export const documentOperations: INodeProperties[] = [
 	{
 		displayName: 'Operation',
@@ -52,7 +65,7 @@ export const documentOperations: INodeProperties[] = [
 				name: 'Get',
 				value: 'get',
 				description:
-					'Get one document: its data sets with their column names, its split configuration and its distributions',
+					'Get one document: its data sets with their column names, whether it splits, and its distributions',
 				action: 'Get document',
 			},
 			{
@@ -96,6 +109,9 @@ export const documentFields: INodeProperties[] = [
 				resource: ['document'],
 				operation: ['get', 'generate'],
 			},
+		},
+		typeOptions: {
+			loadOptionsDependsOn: ['options.projectId'],
 		},
 		description:
 			'The document to generate or read. Pick it from the list, paste its URL, or enter its ID.',
@@ -148,6 +164,20 @@ export const documentFields: INodeProperties[] = [
 		],
 	},
 	...outputProperties('document', 'get', DOCUMENT_OUTPUT),
+	{
+		displayName: 'Options',
+		name: 'options',
+		type: 'collection',
+		placeholder: 'Add option',
+		default: {},
+		displayOptions: {
+			show: {
+				resource: ['document'],
+				operation: ['get'],
+			},
+		},
+		options: [projectFilterOption],
+	},
 	{
 		displayName: 'Rows Come From',
 		name: 'rowsFrom',
@@ -367,6 +397,7 @@ export const documentFields: INodeProperties[] = [
 				},
 				description: 'How often to check whether the run has finished',
 			},
+			projectFilterOption,
 			{
 				displayName: 'Unknown Fields',
 				name: 'unknownKeys',

@@ -112,6 +112,6 @@ describe('display names and placeholders', () => {
 			}
 		};
 		visit(node.properties);
-		expect(placeholders).toEqual(['Add option', 'Add option']);
+		expect(placeholders).toEqual(['Add option', 'Add option', 'Add option']);
 	});
 });

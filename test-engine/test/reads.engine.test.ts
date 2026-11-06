@@ -124,6 +124,20 @@ describe('Document → Get', () => {
 		expect(result.items('SourceToDocs')[0].pairedItem).toEqual({ item: 0 });
 	});
 
+	it.each([1, 1.1])('version %s: Options → Project set sends the same request and returns the same item as without', async (typeVersion) => {
+		const PROJECT = 'a0000000-0000-4000-8000-000000000001';
+		const plain = await startApi();
+		const filtered = await startApi();
+
+		const before = await readWith(plain, s2d({ resource: 'document', operation: 'get' }, { typeVersion }));
+		const after = await readWith(filtered, s2d({ resource: 'document', operation: 'get', options: { projectId: PROJECT } }, { typeVersion }));
+
+		expect(paths(filtered)).toEqual([`GET ${API_PATH}/documents/${DOC_ID}`]);
+		expect(paths(filtered)).toEqual(paths(plain));
+		expect(JSON.stringify(filtered.requests)).not.toContain(PROJECT);
+		expect(after.json('SourceToDocs')).toEqual(before.json('SourceToDocs'));
+	});
+
 	describe('Output, node version 1.1', () => {
 		const V11 = { typeVersion: 1.1 };
 		const rich = {

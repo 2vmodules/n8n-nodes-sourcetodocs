@@ -19,32 +19,41 @@ const optionsOf = (fields: Array<{ name: string; displayOptions?: { show?: Recor
 		| undefined;
 const generateOptions = () => optionsOf(documentFields, 'document', 'generate');
 const getOptions = () => optionsOf(runFields, 'run', 'get');
+const documentGetOptions = () => optionsOf(documentFields, 'document', 'get');
 const generateItem = (name: string) => generateOptions()?.options.find((item) => item.name === name);
 const getItem = (name: string) => getOptions()?.options.find((item) => item.name === name);
 
 describe('the Options collections', () => {
-	it('Generate and Run → Get each have one, shown for their operation, the last property of it', () => {
+	it('Generate, Document → Get and Run → Get each have one, shown for their operation, the last property of it', () => {
 		for (const [fields, collection, last] of [
 			[documentFields, generateOptions(), 'generate'],
+			[documentFields, documentGetOptions(), 'get'],
 			[runFields, getOptions(), 'get'],
 		] as const) {
 			expect(collection).toBeDefined();
 			expect(collection).toMatchObject({ displayName: 'Options', name: 'options', type: 'collection', placeholder: 'Add option', default: {} });
-			expect(fields.filter((f) => f.name === 'options')).toHaveLength(1);
 			const ofOperation = fields.filter((f) => JSON.stringify(f.displayOptions?.show ?? {}).includes(`"operation":["${last}"`));
-			expect(ofOperation.length).toBeGreaterThan(3);
+			expect(ofOperation.filter((f) => f.name === 'options')).toHaveLength(1);
+			expect(ofOperation.length).toBeGreaterThan(2);
 			expect(ofOperation[ofOperation.length - 1]).toBe(collection);
 		}
 	});
 
 	it('hold the optional fields, in n8n\'s alphabetical order by display name, with their defaults and type options', () => {
 		const generate = generateOptions()?.options ?? [];
-		expect(generate.map((item) => item.displayName)).toEqual(['Additional Data Sets', 'Deliver to Names or IDs', 'Idempotency Key', 'Max Wait (Seconds)', 'Poll Every (Seconds)', 'Unknown Fields', 'Wait for Completion']);
-		expect(generate.map((item) => item.name)).toEqual(['additionalDataSets', 'distributionIds', 'idempotencyKey', 'maxWait', 'pollEvery', 'unknownKeys', 'waitForCompletion']);
-		expect(generate.map((item) => item.default)).toEqual([{}, [], '', 300, 5, 'drop', true]);
+		expect(generate.map((item) => item.displayName)).toEqual(['Additional Data Sets', 'Deliver to Names or IDs', 'Idempotency Key', 'Max Wait (Seconds)', 'Poll Every (Seconds)', 'Project Name or ID', 'Unknown Fields', 'Wait for Completion']);
+		expect(generate.map((item) => item.name)).toEqual(['additionalDataSets', 'distributionIds', 'idempotencyKey', 'maxWait', 'pollEvery', 'projectId', 'unknownKeys', 'waitForCompletion']);
+		expect(generate.map((item) => item.default)).toEqual([{}, [], '', 300, 5, '', 'drop', true]);
 		expect(generateItem('distributionIds')?.typeOptions).toEqual({ loadOptionsMethod: 'getDistributions', loadOptionsDependsOn: ['documentId.value'] });
 		expect(generateItem('maxWait')?.typeOptions).toEqual({ minValue: 1 });
 		expect(generateItem('pollEvery')?.typeOptions).toEqual({ minValue: 2 });
+
+		const project = generateItem('projectId');
+		expect(project).toMatchObject({ type: 'options', default: '', typeOptions: { loadOptionsMethod: 'getProjects' } });
+		expect(project?.description).toMatch(/Choose from the list, or specify an ID using an <a href="https:\/\/docs\.n8n\.io\/code\/expressions\/">expression<\/a>\.$/);
+		expect(project?.description).toContain('never sent');
+		expect((documentGetOptions()?.options ?? []).map((item) => item.name)).toEqual(['projectId']);
+		expect(optionsOf(documentFields, 'document', 'get')?.options[0]).toBe(project);
 
 		const get = getOptions()?.options ?? [];
 		expect(get.map((item) => item.displayName)).toEqual(['Max Wait (Seconds)', 'Summary Only']);
@@ -73,16 +82,27 @@ describe('the Options collections', () => {
 	});
 
 	it('none of the names inside an Options collection is a top-level property of Generate or Run → Get', () => {
-		const names = [...(generateOptions()?.options ?? []), ...(getOptions()?.options ?? [])].map((item) => item.name);
+		// Project is the exception by design: Document → Get Many keeps its own required, top-level one.
+		const names = [...(generateOptions()?.options ?? []), ...(getOptions()?.options ?? [])].map((item) => item.name).filter((name) => name !== 'projectId');
 		expect(names.length).toBeGreaterThan(8);
 		for (const name of names) {
 			expect([...documentFields, ...runFields].filter((f) => f.name === name), name).toEqual([]);
 		}
+		const topLevelProject = documentFields.filter((f) => f.name === 'projectId');
+		expect(topLevelProject).toHaveLength(1);
+		expect(topLevelProject[0].displayOptions?.show).toEqual({ resource: ['document'], operation: ['getMany'] });
 	});
 
 	it('Unknown Fields reads the node\'s Rows Come From (JSON and Map Columns), Additional Data Sets only the Map Columns one', () => {
 		expect(generateItem('unknownKeys')?.displayOptions).toEqual({ show: { '/rowsFrom': ['workflow', 'mapped'] } });
 		expect(generateItem('additionalDataSets')?.displayOptions).toEqual({ show: { '/rowsFrom': ['mapped'] } });
+	});
+});
+
+describe('the Document locator', () => {
+	it('reloads its list when Options → Project changes', () => {
+		const locator = documentFields.find((f) => f.name === 'documentId');
+		expect(locator?.typeOptions).toEqual({ loadOptionsDependsOn: ['options.projectId'] });
 	});
 });
 

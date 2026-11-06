@@ -612,7 +612,7 @@ function makeAdditionalData(
 }
 
 /**
- * The optional fields of Document → Generate and Run → Get (Unknown Fields and Additional Data Sets among them) live in the `options` collection. n8n's
+ * The optional fields of Document → Generate, Document → Get and Run → Get (Unknown Fields, Additional Data Sets and Project among them) live in the `options` collection. n8n's
  * `Workflow` constructor drops a top-level key that no longer matches a property, without an
  * error, so a test that still sets one at the top level would run on the defaults and prove
  * nothing. Refuse it loudly instead.
@@ -630,7 +630,11 @@ export const OPTION_NAMES = [
 
 export function assertOptionsMigrated(node: { name?: string; type: string; parameters: object }): void {
 	if (!node.type.startsWith(S2D_TYPE)) return;
-	const stray = OPTION_NAMES.filter((name) => name in node.parameters);
+	const parameters = node.parameters as { resource?: string; operation?: string };
+	const stray: string[] = OPTION_NAMES.filter((name) => name in parameters);
+	// Project is a top-level parameter of Document → Get Many only; everywhere else it is an option.
+	const getMany = (parameters.resource ?? 'document') === 'document' && parameters.operation === 'getMany';
+	if ('projectId' in parameters && !getMany) stray.push('projectId');
 	if (stray.length > 0) {
 		throw new Error(`${node.name ?? node.type} sets ${stray.join(', ')} at the top level; these belong under parameters.options`);
 	}
